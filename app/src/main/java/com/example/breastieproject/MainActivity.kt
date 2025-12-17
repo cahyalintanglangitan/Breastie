@@ -17,6 +17,7 @@ import com.example.breastieproject.ui.components.BreastieHeader
 import com.example.breastieproject.ui.screens.auth.SignInScreen
 import com.example.breastieproject.ui.screens.auth.SignUpScreen
 import com.example.breastieproject.ui.screens.community.CommunityScreen
+import com.example.breastieproject.ui.screens.home.HomeScreen
 import com.example.breastieproject.ui.screens.onboarding.OnboardingScreen
 import com.example.breastieproject.ui.theme.BackupTheme
 
@@ -95,7 +96,20 @@ fun MainScreen() {
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> DashboardPlaceholder()
+                0 -> HomeScreen(onProfileClick = {
+                    // TODO: Navigate to Profile screen
+                    // Temporary: Just print
+                    println("Profile clicked from Home")
+                },
+                    onCheckUpClick = {
+                        // TODO: Navigate to FAQ screen
+                        // Temporary: Just print
+                        println("FAQ clicked from Home")
+                    },
+                    onReminderClick = {
+                        selectedTab = 2
+                    }
+                )
                 1 -> CommunityScreen()
                 2 -> ReminderScreen()
                 3 -> AIPlaceholder()
@@ -105,27 +119,6 @@ fun MainScreen() {
 }
 
 // Placeholders tetap sama
-@Composable
-fun DashboardPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "🏠 Dashboard",
-                fontSize = 24.sp,
-                color = Color(0xFFEC7FA9)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "(Kinan's Feature)",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-        }
-    }
-}
 
 
 

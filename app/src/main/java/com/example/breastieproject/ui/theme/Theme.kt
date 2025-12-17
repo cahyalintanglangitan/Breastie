@@ -37,6 +37,10 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Black
 )
 
+val PinkBackground = Color(0xFFFFF5FA)
+val PinkTopBar = Color(0xFFFFB8E0)
+val TextBlack = Color(0xFF1C1C1E)
+
 @Composable
 fun BackupTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
