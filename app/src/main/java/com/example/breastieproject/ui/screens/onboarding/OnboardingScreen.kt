@@ -28,7 +28,9 @@ data class OnboardingData(
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
-fun OnboardingScreen(onFinish: () -> Unit = {}) {
+fun OnboardingScreen(
+    onFinish: (String) -> Unit = {}  // ✅ BERUBAH! Pass destination
+) {
     val pagerState = rememberPagerState()
     val scope = rememberCoroutineScope()
 
@@ -56,8 +58,9 @@ fun OnboardingScreen(onFinish: () -> Unit = {}) {
                 PageIndicator(pages.size, pagerState.currentPage)
 
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // SKIP Button
                     Button(
-                        onClick = { onFinish() },
+                        onClick = { onFinish("signup") },  // ✅ Navigate to Sign Up
                         modifier = Modifier.weight(1f).height(56.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFFFB8E0),
@@ -68,13 +71,14 @@ fun OnboardingScreen(onFinish: () -> Unit = {}) {
                         Text("SKIP", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
 
+                    // NEXT / REGISTER NOW Button
                     Button(
                         onClick = {
                             scope.launch {
                                 if (pagerState.currentPage < pages.size - 1) {
                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
                                 } else {
-                                    onFinish()
+                                    onFinish("signup")  // ✅ Navigate to Sign Up
                                 }
                             }
                         },
@@ -93,12 +97,16 @@ fun OnboardingScreen(onFinish: () -> Unit = {}) {
                     }
                 }
 
+                // Sign in link
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Already have an account? ", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF666666))
-                    TextButton(onClick = { onFinish() }, contentPadding = PaddingValues(0.dp)) {
+                    TextButton(
+                        onClick = { onFinish("signin") },  // ✅ Navigate to Sign In
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
                         Text("Sign in", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFEC7FA9), fontWeight = FontWeight.Bold)
                     }
                 }

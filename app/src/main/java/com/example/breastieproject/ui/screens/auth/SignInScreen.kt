@@ -1,6 +1,5 @@
 package com.example.breastieproject.ui.screens.auth
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,28 +26,22 @@ import androidx.compose.ui.unit.sp
 import com.example.breastieproject.ui.theme.BackupTheme
 
 @Composable
-fun SignUpScreen(
-    onSignUpSuccess: () -> Unit = {},        // Navigate to Dashboard
-    onNavigateToSignIn: () -> Unit = {}      // Navigate to Sign In
+fun SignInScreen(
+    onSignInSuccess: () -> Unit = {},        // Navigate to Dashboard
+    onNavigateToSignUp: () -> Unit = {},     // Navigate to Sign Up
+    onForgotPassword: () -> Unit = {}        // Future: Password reset
 ) {
     // Form states
-    var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var dateOfBirth by remember { mutableStateOf("") }
 
     // UI states
     var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     // Validation
-    val isFormValid = fullName.isNotBlank() &&
-            email.isNotBlank() &&
-            password.length >= 6 &&
-            password == confirmPassword
+    val isFormValid = email.isNotBlank() && password.isNotBlank()
 
     Box(
         modifier = Modifier
@@ -72,14 +65,14 @@ fun SignUpScreen(
                             )
                         )
                     )
-                    .padding(vertical = 48.dp, horizontal = 24.dp)
+                    .padding(vertical = 64.dp, horizontal = 24.dp)
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Create Account",
+                        text = "Welcome Back",
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White,
@@ -87,10 +80,11 @@ fun SignUpScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Join our supportive community",
+                        text = "Sign in to continue your journey",
                         fontSize = 16.sp,
                         color = Color.White.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -127,34 +121,13 @@ fun SignUpScreen(
                         )
                     }
 
-                    // Full Name
-                    OutlinedTextField(
-                        value = fullName,
-                        onValueChange = { fullName = it },
-                        label = {
-                            Text(
-                                "Full Name *",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFEC7FA9),
-                            focusedLabelColor = Color(0xFFEC7FA9),
-                            cursorColor = Color(0xFFEC7FA9)
-                        ),
-                        textStyle = MaterialTheme.typography.bodyLarge
-                    )
-
                     // Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = {
                             Text(
-                                "Email *",
+                                "Email",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -178,7 +151,7 @@ fun SignUpScreen(
                         onValueChange = { password = it },
                         label = {
                             Text(
-                                "Password *",
+                                "Password",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         },
@@ -215,109 +188,34 @@ fun SignUpScreen(
                         textStyle = MaterialTheme.typography.bodyLarge
                     )
 
-                    // Password hint
-                    Text(
-                        text = "Minimum 6 characters",
-                        fontSize = 12.sp,
-                        color = Color(0xFF666666),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    // Confirm Password
-                    OutlinedTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = {
-                            Text(
-                                "Confirm Password *",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (confirmPasswordVisible)
-                            VisualTransformation.None
-                        else
-                            PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password
-                        ),
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                confirmPasswordVisible = !confirmPasswordVisible
-                            }) {
-                                Icon(
-                                    imageVector = if (confirmPasswordVisible)
-                                        Icons.Default.Visibility
-                                    else
-                                        Icons.Default.VisibilityOff,
-                                    contentDescription = if (confirmPasswordVisible)
-                                        "Hide password"
-                                    else
-                                        "Show password",
-                                    tint = Color(0xFFEC7FA9)
-                                )
-                            }
-                        },
-                        isError = confirmPassword.isNotEmpty() &&
-                                password != confirmPassword,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFEC7FA9),
-                            focusedLabelColor = Color(0xFFEC7FA9),
-                            cursorColor = Color(0xFFEC7FA9),
-                            errorBorderColor = Color(0xFFD32F2F),
-                            errorLabelColor = Color(0xFFD32F2F)
-                        ),
-                        textStyle = MaterialTheme.typography.bodyLarge
-                    )
-
-                    // Password match error
-                    if (confirmPassword.isNotEmpty() && password != confirmPassword) {
+                    // Forgot Password link
+                    TextButton(
+                        onClick = onForgotPassword,
+                        modifier = Modifier.align(Alignment.End),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
                         Text(
-                            text = "Passwords don't match",
-                            fontSize = 12.sp,
-                            color = Color(0xFFD32F2F),
-                            style = MaterialTheme.typography.bodySmall
+                            text = "Forgot Password?",
+                            fontSize = 14.sp,
+                            color = Color(0xFFEC7FA9),
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
 
-                    // Date of Birth (Optional)
-                    OutlinedTextField(
-                        value = dateOfBirth,
-                        onValueChange = { dateOfBirth = it },
-                        label = {
-                            Text(
-                                "Date of Birth (Optional)",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        },
-                        placeholder = { Text("DD/MM/YYYY") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFEC7FA9),
-                            focusedLabelColor = Color(0xFFEC7FA9),
-                            cursorColor = Color(0xFFEC7FA9)
-                        ),
-                        textStyle = MaterialTheme.typography.bodyLarge
-                    )
-
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Register Button
+                    // Sign In Button
                     Button(
                         onClick = {
-                            // TODO: Implement Firebase sign up
+                            // TODO: Implement Firebase sign in
                             if (isFormValid) {
                                 isLoading = true
-                                // onSignUpSuccess() will be called after Firebase success
+                                // onSignInSuccess() will be called after Firebase success
 
                                 // TEMPORARY: Just navigate (remove this later!)
-                                onSignUpSuccess()
+                                onSignInSuccess()
                             } else {
-                                errorMessage = "Please fill all required fields correctly"
+                                errorMessage = "Please enter email and password"
                             }
                         },
                         modifier = Modifier
@@ -337,7 +235,7 @@ fun SignUpScreen(
                             )
                         } else {
                             Text(
-                                text = "Create Account",
+                                text = "Sign In",
                                 fontSize = 16.sp,
                                 color = Color(0xFFBE5985),
                                 fontWeight = FontWeight.Bold,
@@ -346,24 +244,26 @@ fun SignUpScreen(
                         }
                     }
 
-                    // Sign In link
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Sign Up link
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Already have an account? ",
+                            text = "Don't have an account? ",
                             fontSize = 14.sp,
                             color = Color(0xFF666666),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         TextButton(
-                            onClick = onNavigateToSignIn,
+                            onClick = onNavigateToSignUp,
                             contentPadding = PaddingValues(0.dp)
                         ) {
                             Text(
-                                text = "Sign In",
+                                text = "Sign Up",
                                 fontSize = 14.sp,
                                 color = Color(0xFFEC7FA9),
                                 fontWeight = FontWeight.Bold,
@@ -379,8 +279,8 @@ fun SignUpScreen(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun SignUpScreenPreview() {
+fun SignInScreenPreview() {
     BackupTheme {
-        SignUpScreen()
+        SignInScreen()
     }
 }

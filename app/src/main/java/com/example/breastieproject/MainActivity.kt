@@ -6,13 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.breastieproject.ui.components.BottomNavBar
 import com.example.breastieproject.ui.components.BreastieHeader
+import com.example.breastieproject.ui.screens.auth.SignInScreen
+import com.example.breastieproject.ui.screens.auth.SignUpScreen
 import com.example.breastieproject.ui.screens.community.CommunityScreen
+import com.example.breastieproject.ui.screens.onboarding.OnboardingScreen
 import com.example.breastieproject.ui.theme.BackupTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,21 +24,60 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             BackupTheme {
-                MainScreen()
+                AppNavigation()  // ✅ BERUBAH! Pakai navigation
             }
         }
     }
 }
 
 @Composable
+fun AppNavigation() {
+    // Simple navigation state
+    var currentScreen by remember { mutableStateOf("onboarding") }
+
+    when (currentScreen) {
+        "onboarding" -> {
+            OnboardingScreen(
+                onFinish = { destination ->
+                    currentScreen = destination  // "signup" or "signin"
+                }
+            )
+        }
+        "signup" -> {
+            SignUpScreen(
+                onSignUpSuccess = {
+                    currentScreen = "main"  // Go to main app
+                },
+                onNavigateToSignIn = {
+                    currentScreen = "signin"
+                }
+            )
+        }
+        "signin" -> {
+            SignInScreen(
+                onSignInSuccess = {
+                    currentScreen = "main"  // Go to main app
+                },
+                onNavigateToSignUp = {
+                    currentScreen = "signup"
+                }
+            )
+        }
+        "main" -> {
+            MainScreen()  // Your existing main screen
+        }
+    }
+}
+
+@Composable
 fun MainScreen() {
-    var selectedTab by remember { mutableIntStateOf(0) }  // Default: Community
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {
             BreastieHeader(
-                onNotificationClick = { /* TODO: Navigate to notifications */ },
-                onProfileClick = { /* TODO: Navigate to profile */ }
+                onNotificationClick = { /* TODO */ },
+                onProfileClick = { /* TODO */ }
             )
         },
         bottomBar = {
@@ -51,23 +94,23 @@ fun MainScreen() {
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> DashboardPlaceholder()     // Home
-                1 -> CommunityScreen()       // Community (YOUR FEATURE!)
-                2 -> ReminderPlaceholder()      // Reminder
-                3 -> AIPlaceholder()            // AI Checkup
+                0 -> DashboardPlaceholder()
+                1 -> CommunityScreen()
+                2 -> ReminderPlaceholder()
+                3 -> AIPlaceholder()
             }
         }
     }
 }
 
-// Placeholder screens (untuk tim)
+// Placeholders tetap sama
 @Composable
 fun DashboardPlaceholder() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "🏠 Dashboard",
                 fontSize = 24.sp,
@@ -87,9 +130,9 @@ fun DashboardPlaceholder() {
 fun ReminderPlaceholder() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "⏰ Reminder",
                 fontSize = 24.sp,
@@ -109,11 +152,11 @@ fun ReminderPlaceholder() {
 fun AIPlaceholder() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
+        contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "🤖 AI Checkup",
+                text = "✨ AI Checkup",
                 fontSize = 24.sp,
                 color = Color(0xFFEC7FA9)
             )

@@ -64,6 +64,9 @@ dependencies {
     // Coil (Image Loading)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
+
     // Accompanist (Pager untuk Onboarding)
     implementation("com.google.accompanist:accompanist-pager:0.36.0")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.36.0")
