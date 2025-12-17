@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.breastieproject.screens.reminder.ReminderScreen
 import com.example.breastieproject.ui.components.BottomNavBar
 import com.example.breastieproject.ui.components.BreastieHeader
 import com.example.breastieproject.ui.screens.auth.SignInScreen
@@ -96,7 +97,7 @@ fun MainScreen() {
             when (selectedTab) {
                 0 -> DashboardPlaceholder()
                 1 -> CommunityScreen()
-                2 -> ReminderPlaceholder()
+                2 -> ReminderScreen()
                 3 -> AIPlaceholder()
             }
         }
@@ -126,27 +127,7 @@ fun DashboardPlaceholder() {
     }
 }
 
-@Composable
-fun ReminderPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "⏰ Reminder",
-                fontSize = 24.sp,
-                color = Color(0xFFEC7FA9)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "(Yanda's Feature)",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-        }
-    }
-}
+
 
 @Composable
 fun AIPlaceholder() {
