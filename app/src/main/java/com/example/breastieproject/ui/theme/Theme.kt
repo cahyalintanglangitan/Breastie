@@ -11,52 +11,44 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// Dark Mode Color Scheme
-private val DarkColorScheme = darkColorScheme(
-    primary = PinkDark,           // EC7FA9
-    onPrimary = White,
-    secondary = PinkMedium,        // FFB8E0
-    onSecondary = White,
-    tertiary = PinkDeep,           // BE5985
-    background = Color(0xFF1A1A1A), // Dark gray background
-    onBackground = White,
-    surface = Color(0xFF2A2A2A),   // Slightly lighter gray
-    onSurface = White
-)
-
-// Light Mode Color Scheme
+// ✅ LIGHT COLOR SCHEME ONLY!
 private val LightColorScheme = lightColorScheme(
-    primary = PinkDark,           // EC7FA9
-    onPrimary = White,
-    secondary = PinkMedium,        // FFB8E0
-    onSecondary = White,
-    tertiary = PinkDeep,           // BE5985
-    background = PinkLight,        // FFEDFA
-    onBackground = Black,
-    surface = White,
-    onSurface = Black
-)
+    primary = Color(0xFFEC7FA9),           // Pink primary
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFB8E0),
+    onPrimaryContainer = Color(0xFF333333),
 
-val PinkBackground = Color(0xFFFFF5FA)
-val PinkTopBar = Color(0xFFFFB8E0)
-val TextBlack = Color(0xFF1C1C1E)
+    secondary = Color(0xFFBE5985),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFEDFA),
+    onSecondaryContainer = Color(0xFF333333),
+
+    tertiary = Color(0xFFFFB8E0),
+    onTertiary = Color.White,
+
+    background = Color(0xFFFFEDFA),        // Pink background
+    onBackground = Color(0xFF333333),
+
+    surface = Color.White,
+    onSurface = Color(0xFF333333),
+    surfaceVariant = Color(0xFFFFF3F8),
+    onSurfaceVariant = Color(0xFF666666),
+
+    error = Color(0xFFD32F2F),
+    onError = Color.White,
+
+    outline = Color(0xFFEEEEEE),
+    outlineVariant = Color(0xFFF5F5F5)
+)
 
 @Composable
 fun BackupTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,  // ✅ ALWAYS FALSE! FORCE LIGHT MODE!
+    dynamicColor: Boolean = false,  // ✅ DISABLE DYNAMIC COLOR
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // ✅ ALWAYS USE LIGHT COLOR SCHEME!
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

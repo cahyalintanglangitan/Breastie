@@ -13,3 +13,70 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# ========================================
+#  ADDED - SECURITY & CLEANUP
+# ========================================
+
+# Built application files
+*.apk
+*.ap_
+*.aab
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# More Gradle files
+build/
+
+# Log Files
+*.log
+
+# More Android Studio files
+.navigation/
+*.iml
+/.idea/gradle.xml
+/.idea/dictionaries
+/.idea/jarRepositories.xml
+/.idea/tasks.xml
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Keystore files - IMPORTANT!
+*.jks
+*.keystore
+
+# ========================================
+# FIREBASE - CRITICAL! NEVER COMMIT!
+# ========================================
+google-services.json
+app/google-services.json
+**/google-services.json
+GoogleService-Info.plist
+
+# ========================================
+# OS-specific files
+# ========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Android Profiling
+*.hprof
+
+# Version control
+.svn/

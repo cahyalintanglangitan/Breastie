@@ -1,6 +1,5 @@
 package com.example.breastieproject.ui.screens.auth
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,16 +19,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.breastieproject.ui.theme.BackupTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.breastieproject.viewmodels.AuthViewModel
+import com.example.breastieproject.ui.state.AuthState
 
 @Composable
 fun SignUpScreen(
-    onSignUpSuccess: () -> Unit = {},        // Navigate to Dashboard
-    onNavigateToSignIn: () -> Unit = {}      // Navigate to Sign In
+    onSignUpSuccess: () -> Unit = {},
+    onNavigateToSignIn: () -> Unit = {},
+    viewModel: AuthViewModel = viewModel()  // ✅ ADD ViewModel!
 ) {
     // Form states
     var fullName by remember { mutableStateOf("") }
@@ -41,8 +41,21 @@ fun SignUpScreen(
     // UI states
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // ✅ Observe AuthState dari ViewModel
+    val authState by viewModel.authState.collectAsState()
+
+    // ✅ Handle AuthState changes
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                // Sign up successful! Navigate to main
+                onSignUpSuccess()
+                viewModel.resetAuthState()
+            }
+            else -> { /* Do nothing */ }
+        }
+    }
 
     // Validation
     val isFormValid = fullName.isNotBlank() &&
@@ -50,17 +63,25 @@ fun SignUpScreen(
             password.length >= 6 &&
             password == confirmPassword
 
+    // ✅ Loading state
+    val isLoading = authState is AuthState.Loading
+
+    // ✅ Error message
+    val errorMessage = if (authState is AuthState.Error) {
+        (authState as AuthState.Error).message
+    } else null
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFEDFA))  // Pink light background
+            .background(Color(0xFFFFEDFA))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header Section (Pink gradient)
+            // Header Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -95,7 +116,7 @@ fun SignUpScreen(
                 }
             }
 
-            // Form Section (White card)
+            // Form Section
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,7 +131,7 @@ fun SignUpScreen(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Error message
+                    // ✅ Error message from Firebase
                     errorMessage?.let { error ->
                         Text(
                             text = error,
@@ -145,7 +166,7 @@ fun SignUpScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading  // ✅ Disable saat loading
                     )
 
                     // Email
@@ -169,7 +190,7 @@ fun SignUpScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading
                     )
 
                     // Password
@@ -212,7 +233,7 @@ fun SignUpScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading
                     )
 
                     // Password hint
@@ -269,7 +290,7 @@ fun SignUpScreen(
                             errorBorderColor = Color(0xFFD32F2F),
                             errorLabelColor = Color(0xFFD32F2F)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading
                     )
 
                     // Password match error
@@ -301,7 +322,7 @@ fun SignUpScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -309,21 +330,20 @@ fun SignUpScreen(
                     // Register Button
                     Button(
                         onClick = {
-                            // TODO: Implement Firebase sign up
+                            // ✅ Call ViewModel signUp()
                             if (isFormValid) {
-                                isLoading = true
-                                // onSignUpSuccess() will be called after Firebase success
-
-                                // TEMPORARY: Just navigate (remove this later!)
-                                onSignUpSuccess()
-                            } else {
-                                errorMessage = "Please fill all required fields correctly"
+                                viewModel.signUp(
+                                    fullName = fullName.trim(),
+                                    email = email.trim(),
+                                    password = password,
+                                    dateOfBirth = dateOfBirth.trim()
+                                )
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = isFormValid && !isLoading,
+                        enabled = isFormValid && !isLoading,  // ✅ Disable saat loading
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEC7FA9),
                             disabledContainerColor = Color(0xFFFFB8E0)
@@ -339,7 +359,6 @@ fun SignUpScreen(
                             Text(
                                 text = "Create Account",
                                 fontSize = 16.sp,
-                                color = Color(0xFFBE5985),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelLarge
                             )
@@ -360,7 +379,8 @@ fun SignUpScreen(
                         )
                         TextButton(
                             onClick = onNavigateToSignIn,
-                            contentPadding = PaddingValues(0.dp)
+                            contentPadding = PaddingValues(0.dp),
+                            enabled = !isLoading
                         ) {
                             Text(
                                 text = "Sign In",
@@ -374,13 +394,5 @@ fun SignUpScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun SignUpScreenPreview() {
-    BackupTheme {
-        SignUpScreen()
     }
 }

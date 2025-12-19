@@ -2,16 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    id("com.google.gms.google-services")  // ✅ TAMBAH INI!
 }
 
 android {
     namespace = "com.example.breastieproject"
-    compileSdk = 34  // ✅ SDK 34!
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.breastieproject"
         minSdk = 24
-        targetSdk = 34  // ✅ SDK 34!
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -64,12 +66,19 @@ dependencies {
     // Coil (Image Loading)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-
+    // Material Icons Extended
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
 
     // Accompanist (Pager untuk Onboarding)
     implementation("com.google.accompanist:accompanist-pager:0.36.0")
     implementation("com.google.accompanist:accompanist-pager-indicators:0.36.0")
+
+    // ✅ FIREBASE - TAMBAH SEMUA INI!
+    implementation(platform("com.google.firebase:firebase-bom:34.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
 
     // Testing
     testImplementation(libs.junit)

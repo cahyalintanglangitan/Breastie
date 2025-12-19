@@ -20,16 +20,18 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.breastieproject.ui.theme.BackupTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.breastieproject.viewmodels.AuthViewModel
+import com.example.breastieproject.ui.state.AuthState
 
 @Composable
 fun SignInScreen(
-    onSignInSuccess: () -> Unit = {},        // Navigate to Dashboard
-    onNavigateToSignUp: () -> Unit = {},     // Navigate to Sign Up
-    onForgotPassword: () -> Unit = {}        // Future: Password reset
+    onSignInSuccess: () -> Unit = {},
+    onNavigateToSignUp: () -> Unit = {},
+    onForgotPassword: () -> Unit = {},
+    viewModel: AuthViewModel = viewModel()  // ✅ ADD ViewModel!
 ) {
     // Form states
     var email by remember { mutableStateOf("") }
@@ -37,23 +39,44 @@ fun SignInScreen(
 
     // UI states
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // ✅ Observe AuthState
+    val authState by viewModel.authState.collectAsState()
+
+    // ✅ Handle AuthState changes
+    LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                // Sign in successful! Navigate to main
+                onSignInSuccess()
+                viewModel.resetAuthState()
+            }
+            else -> { /* Do nothing */ }
+        }
+    }
 
     // Validation
     val isFormValid = email.isNotBlank() && password.isNotBlank()
 
+    // ✅ Loading state
+    val isLoading = authState is AuthState.Loading
+
+    // ✅ Error message
+    val errorMessage = if (authState is AuthState.Error) {
+        (authState as AuthState.Error).message
+    } else null
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFFFEDFA))  // Pink light background
+            .background(Color(0xFFFFEDFA))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header Section (Pink gradient)
+            // Header Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,7 +112,7 @@ fun SignInScreen(
                 }
             }
 
-            // Form Section (White card)
+            // Form Section
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -104,7 +127,7 @@ fun SignInScreen(
                     modifier = Modifier.padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Error message
+                    // ✅ Error message from Firebase
                     errorMessage?.let { error ->
                         Text(
                             text = error,
@@ -142,7 +165,7 @@ fun SignInScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading  // ✅ Disable saat loading
                     )
 
                     // Password
@@ -185,14 +208,15 @@ fun SignInScreen(
                             focusedLabelColor = Color(0xFFEC7FA9),
                             cursorColor = Color(0xFFEC7FA9)
                         ),
-                        textStyle = MaterialTheme.typography.bodyLarge
+                        enabled = !isLoading
                     )
 
                     // Forgot Password link
                     TextButton(
                         onClick = onForgotPassword,
                         modifier = Modifier.align(Alignment.End),
-                        contentPadding = PaddingValues(0.dp)
+                        contentPadding = PaddingValues(0.dp),
+                        enabled = !isLoading
                     ) {
                         Text(
                             text = "Forgot Password?",
@@ -207,21 +231,18 @@ fun SignInScreen(
                     // Sign In Button
                     Button(
                         onClick = {
-                            // TODO: Implement Firebase sign in
+                            // ✅ Call ViewModel signIn()
                             if (isFormValid) {
-                                isLoading = true
-                                // onSignInSuccess() will be called after Firebase success
-
-                                // TEMPORARY: Just navigate (remove this later!)
-                                onSignInSuccess()
-                            } else {
-                                errorMessage = "Please enter email and password"
+                                viewModel.signIn(
+                                    email = email.trim(),
+                                    password = password
+                                )
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        enabled = isFormValid && !isLoading,
+                        enabled = isFormValid && !isLoading,  // ✅ Disable saat loading
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFFEC7FA9),
                             disabledContainerColor = Color(0xFFFFB8E0)
@@ -237,7 +258,6 @@ fun SignInScreen(
                             Text(
                                 text = "Sign In",
                                 fontSize = 16.sp,
-                                color = Color(0xFFBE5985),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelLarge
                             )
@@ -260,7 +280,8 @@ fun SignInScreen(
                         )
                         TextButton(
                             onClick = onNavigateToSignUp,
-                            contentPadding = PaddingValues(0.dp)
+                            contentPadding = PaddingValues(0.dp),
+                            enabled = !isLoading
                         ) {
                             Text(
                                 text = "Sign Up",
@@ -274,13 +295,5 @@ fun SignInScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun SignInScreenPreview() {
-    BackupTheme {
-        SignInScreen()
     }
 }

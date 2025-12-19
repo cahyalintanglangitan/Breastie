@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel  // ✅ ADD THIS IMPORT!
 import com.example.breastieproject.screens.reminder.ReminderScreen
 import com.example.breastieproject.ui.components.BottomNavBar
 import com.example.breastieproject.ui.components.BreastieHeader
@@ -19,14 +20,22 @@ import com.example.breastieproject.ui.screens.auth.SignUpScreen
 import com.example.breastieproject.ui.screens.community.CommunityScreen
 import com.example.breastieproject.ui.screens.home.HomeScreen
 import com.example.breastieproject.ui.screens.onboarding.OnboardingScreen
+import com.example.breastieproject.ui.screens.profile.AboutBreastieScreen
+import com.example.breastieproject.ui.screens.profile.ChangePasswordScreen
+import com.example.breastieproject.ui.screens.profile.ContactSupportScreen
+import com.example.breastieproject.ui.screens.profile.EditProfileScreen
+import com.example.breastieproject.ui.screens.profile.ProfileScreen
+import com.example.breastieproject.ui.screens.profile.QuestionScreen
 import com.example.breastieproject.ui.theme.BackupTheme
+import com.example.breastieproject.viewmodels.AuthViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             BackupTheme {
-                AppNavigation()  // ✅ BERUBAH! Pakai navigation
+                AppNavigation()
             }
         }
     }
@@ -34,52 +43,134 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
-    // Simple navigation state
     var currentScreen by remember { mutableStateOf("onboarding") }
+    val authViewModel: AuthViewModel = viewModel()  // ✅ NOW WORKS!
 
     when (currentScreen) {
         "onboarding" -> {
             OnboardingScreen(
                 onFinish = { destination ->
-                    currentScreen = destination  // "signup" or "signin"
+                    currentScreen = destination
                 }
             )
         }
         "signup" -> {
             SignUpScreen(
                 onSignUpSuccess = {
-                    currentScreen = "main"  // Go to main app
+                    currentScreen = "main"
                 },
                 onNavigateToSignIn = {
                     currentScreen = "signin"
-                }
+                },
+                viewModel = authViewModel
             )
         }
         "signin" -> {
             SignInScreen(
                 onSignInSuccess = {
-                    currentScreen = "main"  // Go to main app
+                    currentScreen = "main"
                 },
                 onNavigateToSignUp = {
                     currentScreen = "signup"
-                }
+                },
+                viewModel = authViewModel
             )
         }
         "main" -> {
-            MainScreen()  // Your existing main screen
+            MainScreen(
+                onNavigateToProfile = {
+                    currentScreen = "profile"
+                },
+                authViewModel = authViewModel  // ✅ PASS ViewModel!
+            )
+        }
+        "profile" -> {
+            ProfileScreen(
+                onBack = {  
+                    currentScreen = "main"
+                },
+                onEditProfile = {
+                    currentScreen = "edit_profile"
+                },
+                onChangePassword = {
+                    currentScreen = "change_password"
+                },
+                onQuestion = {
+                    currentScreen = "question"
+                },
+                onContactSupport = {
+                    currentScreen = "contact_support"
+                },
+                onAbout = {
+                    currentScreen = "about"
+                },
+                onSignOut = {
+                    authViewModel.signOut()
+                    currentScreen = "onboarding"
+                },
+                viewModel = authViewModel
+            )
+        }
+        "edit_profile" -> {
+            EditProfileScreen(
+                onBack = {
+                    currentScreen = "profile"
+                },
+                onSuccess = {
+                    currentScreen = "profile"
+                },
+                viewModel = authViewModel
+            )
+        }
+        "change_password" -> {
+            ChangePasswordScreen(
+                onBack = {
+                    currentScreen = "profile"
+                },
+                onSuccess = {
+                    currentScreen = "profile"
+                },
+                viewModel = authViewModel
+            )
+        }
+        "question" -> {
+            QuestionScreen(
+                onBack = {
+                    currentScreen = "profile"
+                }
+            )
+        }
+        "contact_support" -> {
+            ContactSupportScreen(
+                onBack = {
+                    currentScreen = "profile"
+                }
+            )
+        }
+        "about" -> {
+            AboutBreastieScreen(
+                onBack = {
+                    currentScreen = "profile"
+                }
+            )
         }
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onNavigateToProfile: () -> Unit = {},  // ✅ ADD PARAMETER!
+    authViewModel: AuthViewModel = viewModel()  // ✅ ADD PARAMETER!
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {
             BreastieHeader(
-                onNotificationClick = { /* TODO */ },
-                onProfileClick = { /* TODO */ }
+                onNotificationClick = {
+                    // TODO: Navigate to notifications
+                },
+                onProfileClick = onNavigateToProfile  // ✅ NOW WORKS!
             )
         },
         bottomBar = {
@@ -96,19 +187,18 @@ fun MainScreen() {
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> HomeScreen(onProfileClick = {
-                    // TODO: Navigate to Profile screen
-                    // Temporary: Just print
-                    println("Profile clicked from Home")
-                },
-                    onCheckUpClick = {
-                        // TODO: Navigate to FAQ screen
-                        // Temporary: Just print
-                        println("FAQ clicked from Home")
-                    },
+                0 -> HomeScreen(
+                    onProfileClick = onNavigateToProfile,  // ✅ NOW WORKS!
                     onReminderClick = {
-                        selectedTab = 2
-                    }
+                        // TODO: Navigate to reminder details
+                    },
+                    onCheckUpClick = { question ->
+                        // TODO: Navigate to AI checkup with question
+                    },
+                    onFaqClick = {
+                        // TODO: Navigate to FAQ
+                    },
+                    viewModel = authViewModel  // ✅ PASS ViewModel!
                 )
                 1 -> CommunityScreen()
                 2 -> ReminderScreen()
@@ -117,10 +207,6 @@ fun MainScreen() {
         }
     }
 }
-
-// Placeholders tetap sama
-
-
 
 @Composable
 fun AIPlaceholder() {
@@ -143,7 +229,6 @@ fun AIPlaceholder() {
         }
     }
 }
-
 
 
 /**

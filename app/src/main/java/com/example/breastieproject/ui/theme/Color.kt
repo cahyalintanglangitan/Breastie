@@ -2,16 +2,26 @@ package com.example.breastieproject.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Breastie Color Palette
-val PinkLight = Color(0xFFFFEDFA)      // Background
-val PinkMedium = Color(0xFFFFB8E0)     // Skip button
-val PinkDark = Color(0xFFEC7FA9)       // Next button
-val PinkDeep = Color(0xFFBE5985)       // Text & Accent
+// Primary Pink Colors
+val PinkPrimary = Color(0xFFEC7FA9)
+val PinkLight = Color(0xFFFFB8E0)
+val PinkLighter = Color(0xFFFFEDFA)
+val PinkDark = Color(0xFFBE5985)
+
+// Background Colors
+val PinkBackground = Color(0xFFFFEDFA)
+val WhiteBackground = Color.White
+
+// Text Colors
+val TextBlack = Color(0xFF333333)
+val TextGray = Color(0xFF666666)
+val TextLightGray = Color(0xFF999999)
 
 // Additional Colors
-val White = Color(0xFFFFFFFF)
 val Black = Color(0xFF000000)
-val Gray = Color(0xFF666666)
+val White = Color(0xFFFFFFFF)
+val ErrorRed = Color(0xFFD32F2F)
+val SuccessGreen = Color(0xFF4CAF50)
 
 
 /**
