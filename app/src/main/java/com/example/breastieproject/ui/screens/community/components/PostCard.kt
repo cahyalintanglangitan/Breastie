@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,12 +23,16 @@ import com.example.breastieproject.ui.theme.BackupTheme
 @Composable
 fun PostCard(
     post: Post,
+    isLiked: Boolean = false,
+    currentUserId: String = "",  // ✅ ADD THIS!
     onLikeClick: () -> Unit = {},
     onCommentClick: () -> Unit = {},
-    onShareClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},  // ✅ ADD THIS!
     modifier: Modifier = Modifier
 ) {
-    var isLiked by remember { mutableStateOf(false) }
+
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val isOwnPost = post.authorId == currentUserId
 
     Card(
         modifier = modifier
@@ -92,13 +96,25 @@ fun PostCard(
                         )
                     }
                 }
+
+                if (isOwnPost) {
+                    IconButton(
+                        onClick = { showDeleteDialog = true }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color(0xFF999999)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Content (Text only!)
             Text(
-                text = post.content,  // ✅ Simple!
+                text = post.content,
                 fontSize = 14.sp,
                 color = Color(0xFF333333),
                 lineHeight = 20.sp
@@ -106,30 +122,27 @@ fun PostCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Buttons: Like, Comment, Share
+            // Action Buttons: Like, Comment,
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Like Button
+                // ✅ UPDATED LIKE BUTTON:
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
                     IconButton(
-                        onClick = {
-                            isLiked = !isLiked
-                            onLikeClick()
-                        }
+                        onClick = onLikeClick  // ✅ CHANGED: Remove toggle logic!
                     ) {
                         Icon(
                             imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                             contentDescription = "Like",
-                            tint = if (isLiked) Color(0xFFEC7FA9) else Color(0xFF999999)
+                            tint = if (isLiked) Color.Red else Color(0xFF999999)  // ✅ CHANGED: Red when liked!
                         )
                     }
                     Text(
-                        text = "${post.likes + if (isLiked) 1 else 0}",
+                        text = "${post.likes}",  // ✅ CHANGED: Just show actual count
                         fontSize = 14.sp,
                         color = Color(0xFF666666)
                     )
@@ -149,26 +162,49 @@ fun PostCard(
                     }
                 }
 
-                // Share Button
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(onClick = onShareClick) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = Color(0xFF999999)
-                        )
-                    }
-                }
             }
         }
     }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    text = "Delete Post?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(text = "This action cannot be undone. Are you sure you want to delete this post?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteClick()
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "Delete",
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = Color(0xFF999999)
+                    )
+                }
+            }
+        )
+    }
 }
-
-
 
 @Preview
 @Composable
@@ -188,8 +224,8 @@ fun PostCardPreview() {
                     content = "Hari ini aku merasa lebih baik setelah sesi kemo kemarin. Terima kasih untuk semua dukungannya! 💪",
                     likes = 45,
                     commentCount = 12,
-                    createdAt = "2 hours ago"
-                )
+                ),
+                isLiked = false  // ✅ ADD FOR PREVIEW
             )
 
             PostCard(
@@ -200,8 +236,8 @@ fun PostCardPreview() {
                     content = "Selamat pagi semua! Hari ini adalah hari ke-365 sejak remisi ku. Terima kasih untuk semua yang sudah support ❤️🎉",
                     likes = 134,
                     commentCount = 45,
-                    createdAt = "5 hours ago"
-                )
+                ),
+                isLiked = true  // ✅ ADD FOR PREVIEW (liked state)
             )
         }
     }
@@ -216,7 +252,7 @@ fun PostCardPreview() {
  *
  * DESKRIPSI:
  * Reusable card component untuk display post di community feed.
- * Social media style card dengan like, comment, share actions.
+ * Social media style card dengan like, comment, actions.
  *
  * ============================================================================
  * PARAMETERS
@@ -236,10 +272,6 @@ fun PostCardPreview() {
  *   - Navigate to CommentScreen
  *   - Pass post data
  *
- * onShareClick: (Post) -> Unit (default = {})
- *   - Callback saat share button diklik
- *   - Share post (future feature)
- *
  * modifier: Modifier (default = Modifier)
  *   - Custom styling dari parent
  *
@@ -257,9 +289,9 @@ fun PostCardPreview() {
  * │                                 │
  * │ [Optional Image]                │  <- Image attachment
  * │                                 │
- * │ ❤️ 24    💬 8    📤 3          │  <- Like, Comment, Share counts
+ * │ ❤️ 24    💬 8                   │  <- Like, Comment,  counts
  * │                                 │
- * │ ❤️ Like  💬 Comment  📤 Share  │  <- Action buttons
+ * │ ❤️ Like  💬 Comment             │  <- Action buttons
  * └─────────────────────────────────┘
  *
  * ============================================================================
@@ -315,9 +347,6 @@ fun PostCardPreview() {
  *     onCommentClick = { post ->
  *         navController.navigate("comment/${post.id}")
  *     },
- *     onShareClick = { post ->
- *         sharePost(post)
- *     }
  * )
  *
  * // In LazyColumn (Feed)
@@ -327,7 +356,6 @@ fun PostCardPreview() {
  *             post = post,
  *             onLikeClick = { /* ... */ },
  *             onCommentClick = { /* ... */ },
- *             onShareClick = { /* ... */ },
  *             modifier = Modifier.padding(horizontal = 16.dp)
  *         )
  *     }
@@ -348,9 +376,6 @@ fun PostCardPreview() {
  *   - Pass: post.id
  *   - Show: All comments for this post
  *
- * Share Button:
- *   - Tap: Open share dialog (future)
- *   - Options: WhatsApp, Instagram, Copy link
  *
  * Content:
  *   - Long content: "Read more" (future)

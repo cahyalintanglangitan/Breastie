@@ -15,24 +15,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.breastieproject.data.model.Community
-import com.example.breastieproject.data.repository.dummy.DummyChatData
-import com.example.breastieproject.data.repository.dummy.DummyCommunityData
 import com.example.breastieproject.ui.screens.community.components.ChatBubble
-import com.example.breastieproject.ui.theme.BackupTheme
+import com.example.breastieproject.viewmodels.CommunityViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 @Composable
 fun ChatScreen(
     community: Community,
-    onBackClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    viewModel: CommunityViewModel = viewModel(),
+    onBackClick: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0=Chat, 1=Info
+    var selectedTab by remember { mutableStateOf(0) }
     var messageText by remember { mutableStateOf("") }
+
+    val messages by viewModel.messages.collectAsState()
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+    // Load messages when screen opens
+    LaunchedEffect(community.id) {
+        viewModel.loadMessages(community.id)
+    }
+
+    // Cleanup when screen closes
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopListeningToMessages()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -44,11 +58,11 @@ fun ChatScreen(
         containerColor = Color(0xFFFFF0F8)
     ) { paddingValues ->
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Tab Row: Chat | Info
+            // Tab Row
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
@@ -84,15 +98,25 @@ fun ChatScreen(
             when (selectedTab) {
                 0 -> ChatTab(
                     community = community,
+                    messages = messages,
+                    currentUserId = currentUserId,
                     messageText = messageText,
                     onMessageChange = { messageText = it },
                     onSendClick = {
-                        // TODO: Send message
-                        println("Send: $messageText")
-                        messageText = ""
+                        viewModel.sendMessage(
+                            communityId = community.id,
+                            messageText = messageText,
+                            onSuccess = {
+                                messageText = ""
+                            }
+                        )
                     }
                 )
-                1 -> InfoTab(community = community)
+                1 -> InfoTab(
+                    community = community,
+                    viewModel = viewModel,
+                    onBackClick = onBackClick
+                )
             }
         }
     }
@@ -114,7 +138,6 @@ private fun ChatHeader(
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back Button
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
@@ -125,7 +148,6 @@ private fun ChatHeader(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Community Info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = community.name,
@@ -134,7 +156,7 @@ private fun ChatHeader(
                     color = Color.White
                 )
                 Text(
-                    text = "${community.memberCount} anggota",
+                    text = "${community.memberCount} members",
                     fontSize = 12.sp,
                     color = Color.White.copy(alpha = 0.9f)
                 )
@@ -146,15 +168,16 @@ private fun ChatHeader(
 @Composable
 private fun ChatTab(
     community: Community,
+    messages: List<com.example.breastieproject.data.model.ChatMessage>,
+    currentUserId: String,
     messageText: String,
     onMessageChange: (String) -> Unit,
     onSendClick: () -> Unit
 ) {
-    val messages = remember { DummyChatData.getMessagesByCommunity(community.id) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    // Auto scroll to bottom when messages load
+    // Auto scroll to bottom when messages change
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             coroutineScope.launch {
@@ -174,11 +197,32 @@ private fun ChatTab(
             state = listState,
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            items(
-                items = messages,
-                key = { it.id }
-            ) { message ->
-                ChatBubble(message = message)
+            if (messages.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No messages yet.\nBe the first to say hi! 👋",
+                            fontSize = 14.sp,
+                            color = Color(0xFF999999),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                items(
+                    items = messages,
+                    key = { it.id }
+                ) { message ->
+                    ChatBubble(
+                        message = message,
+                        currentUserId = currentUserId
+                    )
+                }
             }
         }
 
@@ -208,7 +252,6 @@ private fun ChatInputField(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Text Input
             OutlinedTextField(
                 value = messageText,
                 onValueChange = onMessageChange,
@@ -217,7 +260,7 @@ private fun ChatInputField(
                     .heightIn(min = 48.dp, max = 120.dp),
                 placeholder = {
                     Text(
-                        text = "Ketik pesan...",
+                        text = "Type a message...",
                         color = Color(0xFF999999)
                     )
                 },
@@ -226,10 +269,9 @@ private fun ChatInputField(
                     unfocusedContainerColor = Color(0xFFFFF0F8),
                     focusedBorderColor = Color(0xFFFFB8E0),
                     unfocusedBorderColor = Color(0xFFFFDFF0),
-                    // ✅ ADD THESE!
-                    focusedTextColor = Color(0xFF333333),      // Hitam!
-                    unfocusedTextColor = Color(0xFF333333),    // Hitam!
-                    cursorColor = Color(0xFFEC7FA9)            // Pink cursor
+                    focusedTextColor = Color(0xFF333333),
+                    unfocusedTextColor = Color(0xFF333333),
+                    cursorColor = Color(0xFFEC7FA9)
                 ),
                 shape = RoundedCornerShape(24.dp),
                 maxLines = 4
@@ -237,7 +279,6 @@ private fun ChatInputField(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Send Button
             IconButton(
                 onClick = {
                     if (messageText.isNotBlank()) {
@@ -259,15 +300,18 @@ private fun ChatInputField(
 
 @Composable
 private fun InfoTab(
-    community: Community
+    community: Community,
+    viewModel: CommunityViewModel,
+    onBackClick: () -> Unit
 ) {
+    var showLeaveDialog by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFFFF0F8))
             .padding(16.dp)
     ) {
-        // Community Info Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -280,9 +324,8 @@ private fun InfoTab(
                     .fillMaxWidth()
                     .padding(16.dp)
             ) {
-                // Name
                 Text(
-                    text = "Nama Komunitas",
+                    text = "Community Name",
                     fontSize = 12.sp,
                     color = Color(0xFF999999)
                 )
@@ -295,9 +338,8 @@ private fun InfoTab(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Description
                 Text(
-                    text = "Deskripsi",
+                    text = "Description",
                     fontSize = 12.sp,
                     color = Color(0xFF999999)
                 )
@@ -310,42 +352,24 @@ private fun InfoTab(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Members
                 Text(
-                    text = "Anggota",
+                    text = "Members",
                     fontSize = 12.sp,
                     color = Color(0xFF999999)
                 )
                 Text(
-                    text = "${community.memberCount} anggota",
+                    text = "${community.memberCount} members",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF333333)
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Upcoming Event
-                if (community.upcomingEvent.isNotEmpty()) {
-                    Text(
-                        text = "Event Mendatang",
-                        fontSize = 12.sp,
-                        color = Color(0xFF999999)
-                    )
-                    Text(
-                        text = community.upcomingEvent,
-                        fontSize = 14.sp,
-                        color = Color(0xFF555555)
-                    )
-                }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Leave Button (optional)
         Button(
-            onClick = { /* TODO: Leave community */ },
+            onClick = { showLeaveDialog = true },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFFFDFF0)
@@ -353,24 +377,51 @@ private fun InfoTab(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "Keluar dari Komunitas",
+                text = "Leave Community",
                 color = Color(0xFFEC7FA9),
                 fontWeight = FontWeight.Bold
             )
         }
     }
-}
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun ChatScreenPreview() {
-    BackupTheme {
-        ChatScreen(
-            community = DummyCommunityData.communities[0]
+    if (showLeaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showLeaveDialog = false },
+            title = {
+                Text(
+                    text = "Leave Community?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(text = "Are you sure you want to leave ${community.name}?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.leaveCommunity(community.id)
+                        showLeaveDialog = false
+                        onBackClick()
+                    }
+                ) {
+                    Text(
+                        text = "Leave",
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveDialog = false }) {
+                    Text(
+                        text = "Cancel",
+                        color = Color(0xFF999999)
+                    )
+                }
+            }
         )
     }
 }
-
 
 
 /**

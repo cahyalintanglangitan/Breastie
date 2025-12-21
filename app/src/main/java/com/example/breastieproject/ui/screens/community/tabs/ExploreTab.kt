@@ -16,7 +16,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.breastieproject.data.model.Community
-import com.example.breastieproject.data.repository.dummy.DummyCommunityData
 import com.example.breastieproject.ui.screens.community.components.CommunityCard
 import com.example.breastieproject.ui.theme.BackupTheme
 import com.example.breastieproject.ui.screens.community.components.AnnouncementBanner
@@ -24,7 +23,7 @@ import com.example.breastieproject.ui.screens.community.components.AnnouncementB
 
 @Composable
 fun ExploreTab(
-    communities: List<Community> = DummyCommunityData.getAvailableCommunities(),  // Keep default
+    communities: List<Community> = emptyList(),  // Keep default
     onJoinCommunity: (Community) -> Unit = {},
     onBannerClick: () -> Unit = {}
 ){
@@ -69,7 +68,7 @@ fun ExploreTab(
         ) { community ->
             CommunityCard(
                 community = community,
-                buttonText = "Gabung",  // ← Different button text!
+                buttonText = "Join",  // ← Different button text!
                 onButtonClick = { onJoinCommunity(community) }
             )
         }
@@ -132,9 +131,9 @@ private fun EmptyState(searchQuery: String) {
     ) {
         Text(
             text = if (searchQuery.isEmpty()) {
-                "Belum ada komunitas tersedia"
+                "We don't have a community yet"
             } else {
-                "Tidak ditemukan komunitas\n\"$searchQuery\""
+                "We don't have a community\n\"$searchQuery\" yet"
             },
             fontSize = 16.sp,
             color = Color(0xFF999999),

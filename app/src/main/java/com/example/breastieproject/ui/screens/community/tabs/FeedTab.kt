@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -12,20 +16,42 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import com.example.breastieproject.data.model.Post
-import com.example.breastieproject.data.repository.dummy.DummyPostData
+import com.example.breastieproject.data.model.Community
 import com.example.breastieproject.ui.screens.community.components.AnnouncementBanner
 import com.example.breastieproject.ui.screens.community.components.PostCard
 import com.example.breastieproject.ui.theme.BackupTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedTab(
-    posts: List<Post> = DummyPostData.getFeedPosts(),
+    posts: List<Post> = emptyList(),
+    likedPostIds: Set<String> = emptySet(),
+    currentUserId: String = "",
+    joinedCommunities: List<Community> = emptyList(),  // ✅ ADD THIS!
     onLikeClick: (Post) -> Unit = {},
     onCommentClick: (Post) -> Unit = {},
-    onShareClick: (Post) -> Unit = {},
-    onBannerClick: () -> Unit = {}  // ✅ ADD THIS!
+    onDeleteClick: (Post) -> Unit = {},
+    onBannerClick: () -> Unit = {}
 ) {
+
+    // ✅ ADD FILTER STATE:
+    var selectedCommunityId by remember { mutableStateOf<String?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+
+    // ✅ FILTER POSTS:
+    val filteredPosts = if (selectedCommunityId == null) {
+        posts  // Show all
+    } else {
+        posts.filter { it.communityId == selectedCommunityId }  // Filter by community
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -35,25 +61,90 @@ fun FeedTab(
         // Announcement Banner
         item {
             AnnouncementBanner(
-                onBannerClick = onBannerClick  // ✅ Pass callback!
+                onBannerClick = onBannerClick
             )
         }
 
         // Post Cards
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = if (selectedCommunityId == null) {
+                            "All Communities"
+                        } else {
+                            joinedCommunities.find { it.id == selectedCommunityId }?.name
+                                ?: "All Communities"
+                        },
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Filter by Community") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedBorderColor = Color(0xFFEC7FA9),
+                            unfocusedBorderColor = Color(0xFFFFB8E0)
+                        ),
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        // "All Communities" option
+                        DropdownMenuItem(
+                            text = { Text("All Communities") },
+                            onClick = {
+                                selectedCommunityId = null
+                                expanded = false
+                            }
+                        )
+
+                        // Individual communities
+                        joinedCommunities.forEach { community ->
+                            DropdownMenuItem(
+                                text = { Text(community.name) },
+                                onClick = {
+                                    selectedCommunityId = community.id
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Post Cards (✅ USE FILTERED POSTS!)
         items(
-            items = posts,
+            items = filteredPosts,  // ✅ CHANGED from 'posts'
             key = { it.id }
         ) { post ->
             PostCard(
                 post = post,
+                isLiked = post.id in likedPostIds,
+                currentUserId = currentUserId,
                 onLikeClick = { onLikeClick(post) },
                 onCommentClick = { onCommentClick(post) },
-                onShareClick = { onShareClick(post) }
+                onDeleteClick = { onDeleteClick(post) }
             )
         }
 
-        // Empty State
-        if (posts.isEmpty()) {
+        // Empty State (✅ USE FILTERED POSTS!)
+        if (filteredPosts.isEmpty()) {
             item {
                 EmptyState()
             }
@@ -70,7 +161,7 @@ private fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Belum ada postingan\ndi feed kamu",
+            text = "Your feed is empty for now\nTap New Post to create your first post!",
             fontSize = 16.sp,
             color = Color(0xFF999999),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -85,7 +176,6 @@ fun FeedTabPreview() {
         FeedTab()
     }
 }
-
 
 /**
  * ============================================================================

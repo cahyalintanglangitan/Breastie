@@ -18,18 +18,35 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.breastieproject.data.model.WebinarEvent
 import com.example.breastieproject.data.repository.dummy.DummyWebinarData
 import com.example.breastieproject.ui.theme.BackupTheme
+import com.example.breastieproject.viewmodels.WebinarViewModel
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.breastieproject.R
 
 @Composable
 fun WebinarDetailScreen(
-    webinar: WebinarEvent = DummyWebinarData.currentWebinar,
-    onBackClick: () -> Unit = {},
-    onRegisterSuccess: (String) -> Unit = {}
+    viewModel: WebinarViewModel = viewModel(),  // ✅ ADD ViewModel
+    onBackClick: () -> Unit = {}
 ) {
-    var showRegistrationDialog by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+
+    // ✅ Get states from ViewModel
+    val currentWebinar by viewModel.currentWebinar.collectAsState()
+    val isRegistered by viewModel.isRegistered.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // ✅ Get user email
+    val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
+
+    // Use webinar from ViewModel or fallback to dummy
+    val webinar = currentWebinar ?: DummyWebinarData.currentWebinar
 
     Scaffold(
         topBar = {
@@ -46,6 +63,17 @@ fun WebinarDetailScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
+
+            Image(
+                painter = painterResource(id = R.drawable.webinar_poster),
+                contentDescription = "Webinar Poster",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
+            )
+
+
             // Event Overview Card
             EventOverviewCard(webinar = webinar)
 
@@ -61,42 +89,68 @@ fun WebinarDetailScreen(
                 content = webinar.registrationDetails
             )
 
-            // Register Button (Bottom)
-            Button(
-                onClick = { showRegistrationDialog = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFEC7FA9)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "Reserve a Spot",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            // ✅ UPDATED REGISTER BUTTON:
+            if (isRegistered) {
+                // Already registered
+                Button(
+                    onClick = { /* Already registered */ },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFCCCCCC)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = false
+                ) {
+                    Text(
+                        text = "✓ Already Registered",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            } else {
+                // Not registered yet
+                Button(
+                    onClick = {
+                        viewModel.registerForWebinar(
+                            onSuccess = {
+                                showSuccessDialog = true
+                            }
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEC7FA9)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    } else {
+                        Text(
+                            text = "Reserve a Spot",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
 
-    // Registration Dialog
-    if (showRegistrationDialog) {
-        RegistrationDialog(
-            onDismiss = { showRegistrationDialog = false },
-            onRegister = { email ->
-                showRegistrationDialog = false
-                onRegisterSuccess(email)
-                showSuccessDialog = true
-            }
-        )
-    }
-
-    // Success Dialog
+    // ✅ SUCCESS DIALOG (Updated message)
     if (showSuccessDialog) {
         SuccessDialog(
+            userEmail = userEmail,
             onDismiss = {
                 showSuccessDialog = false
                 onBackClick()
@@ -123,7 +177,7 @@ private fun WebinarHeader(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White
                 )
@@ -298,88 +352,11 @@ private fun SectionCard(
     }
 }
 
-@Composable
-private fun RegistrationDialog(
-    onDismiss: () -> Unit,
-    onRegister: (String) -> Unit
-) {
-    var email by remember { mutableStateOf("") }
-    var emailError by remember { mutableStateOf(false) }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = "Registration Details",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF333333)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Email",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF666666)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        emailError = false
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(
-                            text = "your.email@example.com",
-                            color = Color(0xFF999999)
-                        )
-                    },
-                    isError = emailError,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFFEC7FA9),
-                        unfocusedBorderColor = Color(0xFFDDDDDD),
-                        errorBorderColor = Color.Red,
-                        // ✅ ADD THESE!
-                        focusedTextColor = Color(0xFF333333),      // Hitam!
-                        unfocusedTextColor = Color(0xFF333333),    // Hitam!
-                        cursorColor = Color(0xFFEC7FA9)            // Pink cursor
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                if (emailError) {
-                    Text(
-                        text = "Please enter a valid email",
-                        fontSize = 12.sp,
-                        color = Color.Red,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                // ... rest of code
-            }
-        }
-    }
-}
 
 @Composable
 private fun SuccessDialog(
+    userEmail: String,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -395,7 +372,7 @@ private fun SuccessDialog(
                     .padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Success Icon/Text
+                // Success Icon
                 Text(
                     text = "🎉",
                     fontSize = 64.sp
@@ -412,10 +389,21 @@ private fun SuccessDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // ✅ Show user email
                 Text(
-                    text = "Check your email for the Zoom link and event details.",
+                    text = "Zoom link and event details will be sent to:",
                     fontSize = 14.sp,
                     color = Color(0xFF666666),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = userEmail,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFEC7FA9),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 

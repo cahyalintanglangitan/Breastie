@@ -16,26 +16,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.breastieproject.data.model.Comment
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.breastieproject.data.model.Post
-import com.example.breastieproject.data.repository.dummy.DummyCommentData
-import com.example.breastieproject.data.repository.dummy.DummyPostData
-import com.example.breastieproject.ui.theme.BackupTheme
+import com.example.breastieproject.viewmodels.CommunityViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun CommentScreen(
     post: Post,
-    onBackClick: () -> Unit = {},
-    onCommentAdded: () -> Unit = {}
+    viewModel: CommunityViewModel = viewModel(),  // ✅ ADD
+    onBackClick: () -> Unit = {}
 ) {
-    var commentText by remember { mutableStateOf("") }
-    var comments by remember {
-        mutableStateOf(DummyCommentData.getCommentsByPost(post.id).toMutableList())
+    // Load comments for this post
+    LaunchedEffect(post.id) {
+        viewModel.loadComments(post.id)
     }
+
+    val comments by viewModel.comments.collectAsState()
+    var commentText by remember { mutableStateOf("") }
+    var isSending by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -69,7 +70,7 @@ fun CommentScreen(
 
                 // Divider
                 item {
-                    Divider(
+                    HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
                         color = Color(0xFFFFDFF0)
                     )
@@ -78,7 +79,7 @@ fun CommentScreen(
                 // Comments Section Header
                 item {
                     Text(
-                        text = "Komentar (${comments.size})",
+                        text = "Comments (${comments.size})",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF333333),
@@ -105,32 +106,25 @@ fun CommentScreen(
             CommentInputField(
                 commentText = commentText,
                 onCommentChange = { commentText = it },
+                isEnabled = !isSending,
                 onSendClick = {
                     if (commentText.isNotBlank()) {
-                        // Create new comment
-                        val newComment = Comment(
-                            id = "comment_${System.currentTimeMillis()}",
+                        isSending = true
+
+                        // Call ViewModel to add comment
+                        viewModel.addComment(
                             postId = post.id,
-                            authorId = "user_123",
-                            authorUsername = "@anonim_user_1234",
-                            comment = commentText.trim(),
-                            timestamp = System.currentTimeMillis(),
-                            createdAt = "Baru saja"
+                            commentText = commentText.trim(),
+                            onSuccess = {
+                                commentText = ""
+                                isSending = false
+
+                                // Scroll to bottom
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(comments.size + 2)
+                                }
+                            }
                         )
-
-                        // Add to list
-                        comments.add(newComment)
-                        DummyCommentData.addComment(newComment)
-
-                        // Clear input
-                        commentText = ""
-
-                        // Scroll to bottom
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(comments.size + 2) // +2 for post and header
-                        }
-
-                        onCommentAdded()
                     }
                 }
             )
@@ -167,7 +161,7 @@ private fun CommentHeader(
                 }
 
                 Text(
-                    text = "Komentar",
+                    text = "Comments",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -186,9 +180,7 @@ private fun CommentHeader(
 }
 
 @Composable
-private fun OriginalPostCard(
-    post: Post
-) {
+private fun OriginalPostCard(post: Post) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -283,9 +275,7 @@ private fun OriginalPostCard(
 }
 
 @Composable
-private fun CommentBubble(
-    comment: Comment
-) {
+private fun CommentBubble(comment: com.example.breastieproject.data.model.Comment) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -361,13 +351,13 @@ private fun EmptyComments() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Belum ada komentar",
+            text = "No comments yet",
             fontSize = 14.sp,
             color = Color(0xFF999999)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Jadilah yang pertama berkomentar!",
+            text = "Be the first to comment!",
             fontSize = 12.sp,
             color = Color(0xFFBBBBBB)
         )
@@ -378,6 +368,7 @@ private fun EmptyComments() {
 private fun CommentInputField(
     commentText: String,
     onCommentChange: (String) -> Unit,
+    isEnabled: Boolean = true,
     onSendClick: () -> Unit
 ) {
     Surface(
@@ -400,17 +391,18 @@ private fun CommentInputField(
                     .heightIn(min = 48.dp, max = 120.dp),
                 placeholder = {
                     Text(
-                        text = "Tulis komentar...",
+                        text = "Write a comment...",
                         color = Color(0xFF999999)
                     )
                 },
+                enabled = isEnabled,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFFFFF0F8),
                     unfocusedContainerColor = Color(0xFFFFF0F8),
                     focusedBorderColor = Color(0xFFFFB8E0),
                     unfocusedBorderColor = Color(0xFFFFDFF0),
-                    focusedTextColor = Color(0xFF333333),      // Hitam!
-                    unfocusedTextColor = Color(0xFF333333),    // Hitam!
+                    focusedTextColor = Color(0xFF333333),
+                    unfocusedTextColor = Color(0xFF333333),
                     cursorColor = Color(0xFFEC7FA9)
                 ),
                 shape = RoundedCornerShape(24.dp),
@@ -426,25 +418,15 @@ private fun CommentInputField(
                         onSendClick()
                     }
                 },
-                enabled = commentText.isNotBlank()
+                enabled = commentText.isNotBlank() && isEnabled
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
                     contentDescription = "Send",
-                    tint = if (commentText.isNotBlank())
+                    tint = if (commentText.isNotBlank() && isEnabled)
                         Color(0xFFEC7FA9) else Color(0xFF999999)
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CommentScreenPreview() {
-    BackupTheme {
-        CommentScreen(
-            post = DummyPostData.posts[0]
-        )
     }
 }

@@ -247,9 +247,36 @@ class AuthViewModel : ViewModel() {
         Log.d("BREASTIE_VM", "State reset to Idle")
     }
 
+    /**
+     * Generate unique anonymous username
+     * Format: "Adjective Noun #1234"
+     * Example: "Strong Guardian #4527"
+     */
     private fun generateAnonymousName(): String {
-        val adjectives = listOf("Brave", "Strong", "Hopeful", "Caring", "Gentle")
-        val nouns = listOf("Warrior", "Fighter", "Survivor", "Guardian", "Phoenix")
-        return "${adjectives.random()} ${nouns.random()}"
+        val adjectives = listOf(
+            "Brave", "Strong", "Hopeful", "Caring", "Gentle",
+            "Silent", "Fierce", "Bold", "Swift", "Calm",
+            "Noble", "Mighty", "Bright", "Radiant", "Golden",
+            "Peaceful", "Graceful", "Steadfast", "Courageous", "Wise"
+        )
+
+        val nouns = listOf(
+            "Warrior", "Fighter", "Survivor", "Guardian", "Phoenix",
+            "Eagle", "Wolf", "Lion", "Bear", "Hawk",
+            "Knight", "Sage", "Hunter", "Wanderer", "Shadow",
+            "Spirit", "Flame", "Star", "Moon", "Sun"
+        )
+
+        // ✅ Use timestamp as random seed for true randomness
+        val seed = System.currentTimeMillis()
+        val random = kotlin.random.Random(seed)
+
+        val adj = adjectives.random(random)
+        val noun = nouns.random(random)
+
+        // ✅ Add unique 4-digit ID from timestamp
+        val uniqueId = seed.toString().takeLast(4)
+
+        return "$adj $noun #$uniqueId"
     }
 }

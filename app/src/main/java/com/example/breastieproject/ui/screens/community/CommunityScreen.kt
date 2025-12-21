@@ -11,22 +11,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.breastieproject.data.model.Community
 import com.example.breastieproject.data.model.Post
-import com.example.breastieproject.data.repository.dummy.DummyCommunityData
-import com.example.breastieproject.data.repository.dummy.DummyPostData
 import com.example.breastieproject.ui.screens.community.tabs.ExploreTab
 import com.example.breastieproject.ui.screens.community.tabs.FeedTab
 import com.example.breastieproject.ui.screens.community.tabs.MyCommunityTab
 import com.example.breastieproject.ui.screens.webinar.WebinarDetailScreen
-import com.example.breastieproject.ui.theme.BackupTheme
+import com.example.breastieproject.viewmodels.CommunityViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun CommunityScreen() {  // ✅ Hapus semua parameters!
+fun CommunityScreen(
+    viewModel: CommunityViewModel = viewModel()
+) {
     var selectedTab by remember { mutableStateOf(0) }
+
+    // Observe ViewModel states
+    val allCommunities by viewModel.allCommunities.collectAsState()
+    val joinedCommunityIds by viewModel.joinedCommunityIds.collectAsState()
+    val feedPosts by viewModel.feedPosts.collectAsState()
+    val likedPostIds by viewModel.likedPostIds.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     // State for navigation
     var selectedCommunity by remember { mutableStateOf<Community?>(null) }
@@ -38,59 +48,35 @@ fun CommunityScreen() {  // ✅ Hapus semua parameters!
     var selectedPost by remember { mutableStateOf<Post?>(null) }
     var showComments by remember { mutableStateOf(false) }
 
-    // State for data management
-    var joinedCommunityIds by remember {
-        mutableStateOf(DummyCommunityData.userJoinedCommunityIds.toMutableList())
-    }
-    var feedPosts by remember {
-        mutableStateOf(DummyPostData.getFeedPosts().toMutableList())
-    }
-
     // Show CommentScreen
     if (showComments && selectedPost != null) {
         CommentScreen(
             post = selectedPost!!,
+            viewModel = viewModel,
             onBackClick = {
                 showComments = false
                 selectedPost = null
-            },
-            onCommentAdded = {
-                val postIndex = feedPosts.indexOfFirst { it.id == selectedPost!!.id }
-                if (postIndex != -1) {
-                    feedPosts[postIndex] = feedPosts[postIndex].copy(
-                        commentCount = feedPosts[postIndex].commentCount + 1
-                    )
-                }
             }
         )
     }
     // Show CreatePostScreen
     else if (showCreatePost) {
-        val joinedCommunities = DummyCommunityData.communities
-            .filter { it.id in joinedCommunityIds }
-
         CreatePostScreen(
-            joinedCommunities = joinedCommunities,
-            onBackClick = { showCreatePost = false },
-            onPostCreated = { newPost ->
-                feedPosts.add(0, newPost)
-                println("New post created: ${newPost.content}")
-            }
+            viewModel = viewModel,
+            onBackClick = { showCreatePost = false }
         )
     }
     // Show WebinarScreen
     else if (showWebinar) {
         WebinarDetailScreen(
-            onBackClick = { showWebinar = false },
-            onRegisterSuccess = { email ->
-                println("Registered email: $email")
-            }
+            onBackClick = { showWebinar = false }  // ✅ ONLY THIS!
         )
     }
     // Show ChatScreen
     else if (showChat && selectedCommunity != null) {
         ChatScreen(
             community = selectedCommunity!!,
+            viewModel = viewModel,
             onBackClick = {
                 showChat = false
                 selectedCommunity = null
@@ -99,17 +85,14 @@ fun CommunityScreen() {  // ✅ Hapus semua parameters!
     }
     // Show normal CommunityScreen
     else {
-        // ✅ GAK PAKAI SCAFFOLD LAGI!
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFFEDFA))  // Background pink
+                .background(Color(0xFFFFEDFA))
         ) {
             // Page Header
             CommunityPageHeader(
-                onCreatePostClick = {
-                    showCreatePost = true
-                }
+                onCreatePostClick = { showCreatePost = true }
             )
 
             // Tab Row
@@ -118,54 +101,72 @@ fun CommunityScreen() {  // ✅ Hapus semua parameters!
                 onTabSelected = { selectedTab = it }
             )
 
-            // Tab Content
-            when (selectedTab) {
-                0 -> {
-                    val joinedCommunities = DummyCommunityData.communities
-                        .filter { it.id in joinedCommunityIds }
-
-                    MyCommunityTab(
-                        communities = joinedCommunities,
-                        onCommunityClick = { community ->
-                            selectedCommunity = community
-                            showChat = true
-                        },
-                        onBannerClick = {
-                            showWebinar = true
-                        }
+            // Show loading
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFFEC7FA9)
                     )
                 }
-                1 -> {
-                    val availableCommunities = DummyCommunityData.communities
-                        .filter { it.id !in joinedCommunityIds }
-
-                    ExploreTab(
-                        communities = availableCommunities,
-                        onJoinCommunity = { community ->
-                            joinedCommunityIds.add(community.id)
-                            println("Joined: ${community.name}")
-                        },
-                        onBannerClick = {
-                            showWebinar = true
+            } else {
+                // Tab Content
+                when (selectedTab) {
+                    0 -> {
+                        // My Community: Show only joined
+                        val joinedCommunities = allCommunities.filter {
+                            it.id in joinedCommunityIds
                         }
-                    )
-                }
-                2 -> FeedTab(
-                    posts = feedPosts,
-                    onLikeClick = { post ->
-                        println("Liked: ${post.id}")
-                    },
-                    onCommentClick = { post ->
-                        selectedPost = post
-                        showComments = true
-                    },
-                    onShareClick = { post ->
-                        println("Share: ${post.id}")
-                    },
-                    onBannerClick = {
-                        showWebinar = true
+
+                        MyCommunityTab(
+                            communities = joinedCommunities,
+                            onCommunityClick = { community ->
+                                selectedCommunity = community
+                                showChat = true
+                            },
+                            onBannerClick = { showWebinar = true }
+                        )
                     }
-                )
+                    1 -> {
+                        // Explore: Show only NOT joined
+                        val availableCommunities = allCommunities.filter {
+                            it.id !in joinedCommunityIds
+                        }
+
+                        ExploreTab(
+                            communities = availableCommunities,
+                            onJoinCommunity = { community ->
+                                viewModel.joinCommunity(community.id)
+                            },
+                            onBannerClick = { showWebinar = true }
+                        )
+                    }
+                    2 -> {
+                        val joinedCommunities = allCommunities.filter {
+                            it.id in joinedCommunityIds
+                        }
+
+                        FeedTab(
+                            posts = feedPosts,
+                            likedPostIds = likedPostIds,
+                            currentUserId = currentUserId,
+                            joinedCommunities = joinedCommunities,  // ✅ ADD THIS!
+                            onLikeClick = { post ->
+                                viewModel.toggleLikePost(post.id)
+                            },
+                            onCommentClick = { post ->
+                                selectedPost = post
+                                showComments = true
+                            },
+                            onDeleteClick = { post ->
+                                viewModel.deletePost(post.id)
+                            },
+                            onBannerClick = { showWebinar = true }
+                        )
+                    }
+                }
             }
         }
     }
@@ -197,7 +198,7 @@ private fun CommunityPageHeader(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "connect with people who understand your journey",
+                    text = "Connect with people who understand your journey",
                     fontSize = 14.sp,
                     color = Color(0xFF666666)
                 )
@@ -218,7 +219,7 @@ private fun CommunityPageHeader(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Buat Post",
+                    text = "New Post",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -255,241 +256,3 @@ private fun CommunityTabRow(
         }
     }
 }
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CommunityScreenPreview() {
-    BackupTheme {
-        CommunityScreen()
-    }
-}
-
-
-/**
- * ============================================================================
- * FILE: CommunityScreen.kt
- * LOCATION: ui/screens/community/CommunityScreen.kt
- * ============================================================================
- *
- * DESKRIPSI:
- * Main container screen untuk fitur Community.
- * Handle navigation antar tabs & modal screens (Chat, Create Post, dll).
- *
- * ============================================================================
- * NAVIGATION FLOW
- * ============================================================================
- *
- * CommunityScreen (Main Container)
- * │
- * ├─ Tab 0: My Community Tab
- * │  ├─ Click community card → ChatScreen (modal)
- * │  └─ Click banner → WebinarDetailScreen (modal)
- * │
- * ├─ Tab 1: Explore Tab
- * │  ├─ Click join button → Add to joined list
- * │  └─ Click banner → WebinarDetailScreen (modal)
- * │
- * ├─ Tab 2: Feed Tab
- * │  ├─ Click comment → CommentScreen (modal)
- * │  ├─ Click like → Update like count
- * │  └─ Click banner → WebinarDetailScreen (modal)
- * │
- * └─ Click "Buat Post" → CreatePostScreen (modal)
- *
- * ============================================================================
- * STATE MANAGEMENT
- * ============================================================================
- *
- * Local States:
- *
- * selectedTab: Int
- *   - Current active tab (0, 1, 2)
- *   - Controls which tab content to show
- *
- * selectedCommunity: Community?
- *   - Community yang dipilih untuk chat
- *   - null = no community selected
- *
- * showChat: Boolean
- *   - true = Show ChatScreen modal
- *   - false = Show normal tabs
- *
- * showWebinar: Boolean
- *   - true = Show WebinarDetailScreen
- *   - false = Hide
- *
- * showCreatePost: Boolean
- *   - true = Show CreatePostScreen
- *   - false = Hide
- *
- * selectedPost: Post?
- *   - Post yang dipilih untuk comment
- *   - null = no post selected
- *
- * showComments: Boolean
- *   - true = Show CommentScreen
- *   - false = Hide
- *
- * joinedCommunityIds: MutableList<String>
- *   - IDs komunitas yang user sudah join
- *   - Mutable untuk join/leave actions
- *
- * feedPosts: MutableList<Post>
- *   - List posts di feed
- *   - Mutable untuk create/delete posts
- *
- * ============================================================================
- * UI COMPONENTS
- * ============================================================================
- *
- * CommunityPageHeader:
- *   - Title: "Community"
- *   - Subtitle: "connect with people..."
- *   - Button: "+ Buat Post"
- *
- * CommunityTabRow:
- *   - Tab 0: My Community
- *   - Tab 1: Explore
- *   - Tab 2: Feed
- *   - Pink indicator for selected
- *
- * Tab Content (when):
- *   - 0: MyCommunityTab
- *   - 1: ExploreTab
- *   - 2: FeedTab
- *
- * Modal Screens (if conditions):
- *   - ChatScreen (showChat && selectedCommunity != null)
- *   - WebinarDetailScreen (showWebinar)
- *   - CreatePostScreen (showCreatePost)
- *   - CommentScreen (showComments && selectedPost != null)
- *
- * ============================================================================
- * DATA FLOW
- * ============================================================================
- *
- * Current (Dummy Data):
- *
- * DummyCommunityData
- * ├─ communities → MyCommunityTab, ExploreTab
- * ├─ userJoinedCommunityIds → Filter joined/available
- * └─ Functions: getJoinedCommunities(), getAvailableCommunities()
- *
- * DummyPostData
- * └─ getFeedPosts() → FeedTab
- *
- * Future (Firebase):
- *
- * Firestore "communities" collection
- * ├─ Real-time listener
- * ├─ Query: where("isActive", "==", true)
- * └─ Update on join/leave
- *
- * Firestore "posts" collection
- * ├─ Real-time listener
- * ├─ Query: orderBy("timestamp", "desc")
- * └─ Update on create/delete
- *
- * Firestore "community_members" collection
- * ├─ Track user joins
- * └─ Update member counts
- *
- * ============================================================================
- * CALLBACKS & ACTIONS
- * ============================================================================
- *
- * Join Community:
- *   - Add community.id to joinedCommunityIds
- *   - Update UI immediately (optimistic)
- *   - Future: Firestore transaction
- *
- * Create Post:
- *   - Add new post to feedPosts (top)
- *   - Close CreatePostScreen
- *   - Future: Firestore addDocument
- *
- * Like Post:
- *   - Update post.likeCount
- *   - Toggle like state
- *   - Future: Firestore update + likedBy array
- *
- * Add Comment:
- *   - Update post.commentCount +1
- *   - Close CommentScreen
- *   - Future: Firestore add to comments subcollection
- *
- * ============================================================================
- * INTEGRATION WITH MAINACTIVITY
- * ============================================================================
- *
- * ❌ OLD (WRONG - causes double header/navbar):
- *
- * @Composable
- * fun CommunityScreen(
- *     selectedBottomTab: Int,
- *     onBottomTabSelected: (Int) -> Unit
- * ) {
- *     Scaffold(
- *         topBar = { BreastieHeader(...) },  // ❌ DUPLICATE!
- *         bottomBar = { BottomNavBar(...) }  // ❌ DUPLICATE!
- *     ) { ... }
- * }
- *
- * ✅ NEW (CORRECT - no scaffold):
- *
- * @Composable
- * fun CommunityScreen() {  // No parameters!
- *     Column {  // Direct content, no scaffold
- *         CommunityPageHeader(...)
- *         CommunityTabRow(...)
- *         // Tab content
- *     }
- * }
- *
- * Called from MainActivity:
- *
- * Scaffold(
- *     topBar = { BreastieHeader(...) },     // ✅ Once!
- *     bottomBar = { BottomNavBar(...) }     // ✅ Once!
- * ) {
- *     when (selectedTab) {
- *         1 -> CommunityScreen()  // ✅ No parameters
- *     }
- * }
- *
- * ============================================================================
- * DIPAKAI DI
- * ============================================================================
- *
- * - MainActivity.kt (bottom nav tab index 1)
- *
- * ============================================================================
- * FUTURE IMPROVEMENTS
- * ============================================================================
- *
- * - Search communities
- * - Filter by category
- * - Community settings (for moderators)
- * - Pin important posts
- * - Report inappropriate content
- * - Block users
- * - Notification preferences per community
- *
- * ============================================================================
- * PERFORMANCE NOTES
- * ============================================================================
- *
- * - Lazy loading for long lists
- * - Pagination for posts (future)
- * - Image caching (Coil)
- * - Minimize recomposition
- * - Remember states properly
- *
- * ============================================================================
- * AUTHOR: Lintang
- * CREATED: 13 Dec 2024
- * LAST UPDATE: 13 Dec 2024
- * FEATURE STATUS: ✅ COMPLETE (Dummy data)
- * NEXT: Firebase integration
- * ============================================================================
- */

@@ -4,10 +4,10 @@ data class Comment(
     val id: String = "",
     val postId: String = "",
     val authorId: String = "",
-    val authorUsername: String = "",  // @anonim_user_8472
-    val comment: String = "",
-    val timestamp: Long = System.currentTimeMillis(),
-    val createdAt: String = ""  // "10 mins ago"
+    val authorUsername: String = "",
+    val comment: String = "",  // ✅ MUST BE "comment" (same as Firebase!)
+    val timestamp: Long = 0,
+    val createdAt: String = ""
 )
 
 /**

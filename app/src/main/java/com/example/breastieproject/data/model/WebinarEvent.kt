@@ -2,14 +2,14 @@ package com.example.breastieproject.data.model
 
 data class WebinarEvent(
     val id: String = "",
-    val title: String = "",
-    val subtitle: String = "",
-    val date: String = "",
-    val location: String = "",
-    val imageUrl: String = "",
-    val description: String = "",
-    val whatToExpect: String = "",
-    val registrationDetails: String = ""
+    val title: String = "",           // ✅ Must match Firestore
+    val subtitle: String = "",        // ✅ Must match Firestore
+    val date: String = "",            // ✅ Must match Firestore
+    val location: String = "",        // ✅ Must match Firestore
+    val imageUrl: String = "",        // ✅ Must match Firestore
+    val description: String = "",     // ✅ Must match Firestore
+    val whatToExpect: String = "",    // ✅ Must match Firestore
+    val registrationDetails: String = "" // ✅ Must match Firestore
 )
 
 /**

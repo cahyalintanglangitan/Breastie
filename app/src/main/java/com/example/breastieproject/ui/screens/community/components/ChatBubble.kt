@@ -10,25 +10,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.breastieproject.data.model.ChatMessage
-import com.example.breastieproject.ui.theme.BackupTheme
 
 @Composable
 fun ChatBubble(
     message: ChatMessage,
+    currentUserId: String,  // ✅ ADD THIS!
     modifier: Modifier = Modifier
 ) {
+    val isCurrentUser = message.userId == currentUserId  // ✅ Compare IDs
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = if (message.isCurrentUser)
+        horizontalArrangement = if (isCurrentUser)
             Arrangement.End else Arrangement.Start
     ) {
-        if (!message.isCurrentUser) {
+        if (!isCurrentUser) {
             // Left side: Avatar + Bubble
             Row(
                 modifier = Modifier.fillMaxWidth(0.85f)
@@ -44,7 +45,7 @@ fun ChatBubble(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = message.authorUsername.take(2).uppercase(),
+                        text = message.userName.take(2).uppercase(),
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
@@ -60,14 +61,14 @@ fun ChatBubble(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = message.authorUsername,
+                            text = message.userName,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF333333)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = message.time,
+                            text = message.timeAgo,  // ✅ Use computed property
                             fontSize = 10.sp,
                             color = Color(0xFF999999)
                         )
@@ -104,18 +105,18 @@ fun ChatBubble(
                 modifier = Modifier.fillMaxWidth(0.85f),
                 horizontalAlignment = Alignment.End
             ) {
-                // Time + "Saya"
+                // Time + "You"
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = message.time,
+                        text = message.timeAgo,
                         fontSize = 10.sp,
                         color = Color(0xFF999999)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Saya",
+                        text = "You",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF333333)
@@ -125,86 +126,27 @@ fun ChatBubble(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 // Message Content (Pink bubble!)
-                Row(
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = Color(0xFFFFE4F2),
-                                shape = RoundedCornerShape(
-                                    topStart = 12.dp,
-                                    topEnd = 4.dp,
-                                    bottomStart = 12.dp,
-                                    bottomEnd = 12.dp
-                                )
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = Color(0xFFFFE4F2),
+                            shape = RoundedCornerShape(
+                                topStart = 12.dp,
+                                topEnd = 4.dp,
+                                bottomStart = 12.dp,
+                                bottomEnd = 12.dp
                             )
-                            .padding(12.dp)
-                    ) {
-                        Text(
-                            text = message.message,
-                            fontSize = 14.sp,
-                            color = Color(0xFF333333),
-                            lineHeight = 20.sp
                         )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    // Avatar (right side)
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = Color(0xFFEC7FA9),
-                                shape = CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "R",  // R for "Right" or current user initial
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = message.message,
+                        fontSize = 14.sp,
+                        color = Color(0xFF333333),
+                        lineHeight = 20.sp
+                    )
                 }
             }
-        }
-    }
-}
-
-@Preview
-@Composable
-fun ChatBubblePreview() {
-    BackupTheme {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFFFFF0F8))
-                .padding(vertical = 16.dp)
-        ) {
-            // Others message
-            ChatBubble(
-                message = ChatMessage(
-                    id = "msg_001",
-                    authorUsername = "@anonim_user_8472",
-                    message = "Selamat pagi semuanya! Bagaimana kabar kalian hari ini? 🌸",
-                    time = "09:15",
-                    isCurrentUser = false
-                )
-            )
-
-            // Current user message
-            ChatBubble(
-                message = ChatMessage(
-                    id = "msg_002",
-                    authorUsername = "@anonim_user_1234",
-                    message = "Pagi semua! Hari ini sesi kemo ku yang ketiga, doain ya 🙏",
-                    time = "11:45",
-                    isCurrentUser = true
-                )
-            )
         }
     }
 }

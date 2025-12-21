@@ -2,14 +2,29 @@ package com.example.breastieproject.data.model
 
 data class ChatMessage(
     val id: String = "",
-    val communityId: String = "",
-    val authorId: String = "",
-    val authorUsername: String = "",  // @anonim_user_8472
+    val userId: String = "",
+    val userName: String = "",
     val message: String = "",
-    val timestamp: Long = 0,
-    val time: String = "",  // "09:15"
-    val isCurrentUser: Boolean = false  // true = current user (right bubble)
-)
+    val timestamp: Long = 0
+) {
+    val timeAgo: String
+        get() = getTimeAgo(timestamp)
+
+    private fun getTimeAgo(timestamp: Long): String {
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+
+        return when {
+            diff < 60_000 -> "Just now"
+            diff < 3600_000 -> "${diff / 60_000}m"
+            diff < 86400_000 -> "${diff / 3600_000}h"
+            else -> {
+                val formatter = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                formatter.format(java.util.Date(timestamp))
+            }
+        }
+    }
+}
 
 /**
  * ============================================================================

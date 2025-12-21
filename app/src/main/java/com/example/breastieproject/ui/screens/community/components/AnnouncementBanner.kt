@@ -14,10 +14,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.breastieproject.ui.theme.BackupTheme
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.example.breastieproject.R
 
 @Composable
 fun AnnouncementBanner(
-    onBannerClick: () -> Unit = {}  // ✅ Changed!
+    onBannerClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -33,9 +38,23 @@ fun AnnouncementBanner(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+
+            // ✅ ADD POSTER IMAGE:
+            Image(
+                painter = painterResource(id = R.drawable.webinar_poster),
+                contentDescription = "Webinar Poster",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // Title
             Text(
-                text = "Innovative Ideas from\nWomen Entrepreneurs",
+                text = "Managing Side Effects \nof Breast Cancer Treatment",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF333333),
@@ -46,7 +65,7 @@ fun AnnouncementBanner(
 
             // Subtitle
             Text(
-                text = "Get inspired by success stories of women entrepreneurs in technology",
+                text = "Practical guidance to help you cope physically and emotionally during treatment",
                 fontSize = 14.sp,
                 color = Color(0xFF666666),
                 lineHeight = 20.sp
@@ -91,7 +110,7 @@ fun AnnouncementBanner(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "June 5, 2025",
+                        text = "Jan 5, 2025",
                         fontSize = 12.sp,
                         color = Color(0xFF666666)
                     )
