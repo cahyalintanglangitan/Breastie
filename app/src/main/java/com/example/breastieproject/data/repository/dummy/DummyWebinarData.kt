@@ -12,7 +12,7 @@ object DummyWebinarData {
         location = "Virtual Event (Zoom)",
         imageUrl = "", // Placeholder
         description = """
-            Breast cancer treatment can bring many challenges, both physically and emotionally.
+             Breast cancer treatment can bring many challenges, both physically and emotionally.
             Side effects such as fatigue, nausea, pain, hair loss, and emotional distress are 
             common experiences for many patients.
             
@@ -37,7 +37,7 @@ object DummyWebinarData {
             • Access to exclusive resources
             • Certificate of attendance
             
-            For questions, contact us at breastie@gmail.com
+            For questions, contact us at breastie@gmail.com 
         """.trimIndent()
     )
 }

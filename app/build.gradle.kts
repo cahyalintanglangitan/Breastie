@@ -18,6 +18,13 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 🔐 GROQ API KEY (WAJIB DI SINI)
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY",
+            "\"${project.properties["GROQ_API_KEY"]}\""
+        )
     }
 
     buildTypes {
@@ -34,10 +41,11 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
