@@ -1,21 +1,5 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
-
 # ========================================
-#  ADDED - SECURITY & CLEANUP
+# Android & Gradle
 # ========================================
 
 # Built application files
@@ -35,48 +19,118 @@ gen/
 out/
 release/
 
-# More Gradle files
+# Gradle files
+.gradle/
 build/
+*/build/
+.cxx/
+local.properties
 
-# Log Files
-*.log
+# Android Profiling
+*.hprof
 
-# More Android Studio files
-.navigation/
+# ========================================
+# Android Studio / IntelliJ IDEA
+# ========================================
+
+# User-specific configurations
 *.iml
-/.idea/gradle.xml
-/.idea/dictionaries
-/.idea/jarRepositories.xml
-/.idea/tasks.xml
-misc.xml
-deploymentTargetDropDown.xml
-render.experimental.xml
+.idea/
 
-# Keystore files - IMPORTANT!
-*.jks
-*.keystore
+# ❌ EXCEPTION (optional, kalau mau share code style)
+# !.idea/codeStyles/
+# !.idea/inspectionProfiles/
+
+# ❌ WAJIB DI-BLOCK (JDK & IDE conflicts)
+.idea/compiler.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/jarRepositories.xml
+.idea/dictionaries/
+.idea/libraries/
+.idea/modules.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/caches/
+.idea/deploymentTargetDropDown.xml
+.idea/render.experimental.xml
+.idea/shelf/
+
+# Navigation editor temp files
+.navigation/
+
+# External native build
+.externalNativeBuild/
+
+# Captures
+captures/
 
 # ========================================
 # FIREBASE - CRITICAL! NEVER COMMIT!
 # ========================================
+
 google-services.json
 app/google-services.json
 **/google-services.json
 GoogleService-Info.plist
 
 # ========================================
+# SECURITY - API KEYS & SECRETS
+# ========================================
+
+local.properties
+*.jks
+*.keystore
+keystore.properties
+key.properties
+
+.env
+.env.local
+.env.*.local
+
+# ========================================
 # OS-specific files
 # ========================================
+
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+
+# Windows
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# Android Profiling
-*.hprof
+# Linux
+*~
+.directory
 
-# Version control
+# ========================================
+# Logs
+# ========================================
+
+*.log
+log/
+logs/
+
+# ========================================
+# Version Control leftovers
+# ========================================
+
 .svn/
+*.orig
+*.rej
+
+# ========================================
+# Backup files
+# ========================================
+
+*.bak
+*.swp
+*.swo
+*~.nib
