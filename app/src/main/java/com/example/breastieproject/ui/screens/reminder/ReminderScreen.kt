@@ -1,4 +1,4 @@
-package com.example.breastieproject.screens.reminder
+package com.example.breastieproject.ui.screens.reminder
 
 import android.app.DatePickerDialog
 import androidx.compose.foundation.background
@@ -17,27 +17,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.breastieproject.viewmodels.ReminderViewModel
 import java.util.*
 
-// Data class untuk menyimpan jadwal
-data class JadwalKesehatan(
-    val id: String = UUID.randomUUID().toString(),
-    val namaJadwal: String,
-    val tanggal: String,
-    val dokter: String,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
 @Composable
-fun ReminderScreen() {
+fun ReminderScreen(
+    viewModel: ReminderViewModel = viewModel()  // ✅ ADD ViewModel
+) {
+    // ✅ Observe ViewModel states
+    val reminders by viewModel.reminders.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    // Local form states
     var jadwal by remember { mutableStateOf("") }
     var tanggal by remember { mutableStateOf("") }
     var dokter by remember { mutableStateOf("") }
     var showMessage by remember { mutableStateOf(false) }
     var messageText by remember { mutableStateOf("") }
-
-    // List untuk menyimpan semua jadwal
-    var daftarJadwal by remember { mutableStateOf(listOf<JadwalKesehatan>()) }
 
     Box(
         modifier = Modifier
@@ -64,63 +62,80 @@ fun ReminderScreen() {
                 onDokterChange = { dokter = it },
                 onSubmit = {
                     if (jadwal.isNotEmpty() && tanggal.isNotEmpty() && dokter.isNotEmpty()) {
-                        // Simpan jadwal baru
-                        val jadwalBaru = JadwalKesehatan(
-                            namaJadwal = jadwal,
-                            tanggal = tanggal,
-                            dokter = dokter
+                        // ✅ Call ViewModel to add reminder
+                        viewModel.addReminder(
+                            name = jadwal,
+                            date = tanggal,
+                            doctor = dokter,
+                            onSuccess = {
+                                messageText = "Jadwal berhasil ditambahkan!"
+                                showMessage = true
+
+                                // Reset form
+                                jadwal = ""
+                                tanggal = ""
+                                dokter = ""
+                            }
                         )
-                        daftarJadwal = daftarJadwal + jadwalBaru
-
-                        // Tampilkan pesan sukses
-                        messageText = "Jadwal berhasil ditambahkan!"
-                        showMessage = true
-
-                        // Reset form
-                        jadwal = ""
-                        tanggal = ""
-                        dokter = ""
                     } else {
-                        // Tampilkan pesan error
                         messageText = "Mohon lengkapi semua field!"
                         showMessage = true
                     }
                 }
             )
 
-            // Tampilkan daftar jadwal yang tersimpan
-            if (daftarJadwal.isNotEmpty()) {
+            // ✅ Display reminders from ViewModel
+            if (reminders.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
                 DaftarJadwalCard(
-                    daftarJadwal = daftarJadwal,
-                    onDelete = { jadwalId ->
-                        daftarJadwal = daftarJadwal.filter { it.id != jadwalId }
-                        messageText = "Jadwal berhasil dihapus!"
-                        showMessage = true
+                    daftarJadwal = reminders,  // ✅ From Firestore!
+                    onDelete = { reminderId ->
+                        viewModel.deleteReminder(
+                            reminderId = reminderId,
+                            onSuccess = {
+                                messageText = "Jadwal berhasil dihapus!"
+                                showMessage = true
+                            }
+                        )
                     }
+                )
+            }
+
+            // ✅ Loading indicator
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(16.dp),
+                    color = Color.White
                 )
             }
         }
 
-        if (showMessage) {
+        // ✅ Error/Success message
+        if (showMessage || errorMessage != null) {
             Snackbar(
                 modifier = Modifier
                     .padding(16.dp)
                     .align(Alignment.BottomCenter),
                 action = {
-                    TextButton(onClick = { showMessage = false }) {
+                    TextButton(onClick = {
+                        showMessage = false
+                        viewModel.clearError()
+                    }) {
                         Text("OK", color = Color.White)
                     }
                 },
-                containerColor = if (messageText.contains("berhasil")) Color(0xFF4CAF50) else Color(0xFFFF5252)
+                containerColor = if (messageText.contains("berhasil"))
+                    Color(0xFF4CAF50) else Color(0xFFFF5252)
             ) {
-                Text(messageText)
+                Text(errorMessage ?: messageText)
             }
 
-            // Auto dismiss setelah 3 detik
-            LaunchedEffect(showMessage) {
+            LaunchedEffect(showMessage, errorMessage) {
                 kotlinx.coroutines.delay(3000)
                 showMessage = false
+                viewModel.clearError()
             }
         }
     }
@@ -355,7 +370,7 @@ private fun FormCard(
 
 @Composable
 private fun DaftarJadwalCard(
-    daftarJadwal: List<JadwalKesehatan>,
+    daftarJadwal: List<com.example.breastieproject.data.model.Reminder>,  // ✅ Use Reminder model
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -389,7 +404,7 @@ private fun DaftarJadwalCard(
 
 @Composable
 private fun JadwalItem(
-    jadwal: JadwalKesehatan,
+    jadwal: com.example.breastieproject.data.model.Reminder,  // ✅ Use Reminder model
     onDelete: () -> Unit
 ) {
     Card(
@@ -407,21 +422,22 @@ private fun JadwalItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
+                // ✅ Show H-X days
                 Text(
-                    text = jadwal.namaJadwal,
+                    text = "${jadwal.daysUntil}: ${jadwal.name}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "📅 ${jadwal.tanggal}",
+                    text = "📅 ${jadwal.date}",
                     fontSize = 14.sp,
                     color = Color(0xFFEC7FA9)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "👨‍⚕️ ${jadwal.dokter}",
+                    text = "👨‍⚕️ ${jadwal.doctor}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -436,7 +452,6 @@ private fun JadwalItem(
         }
     }
 }
-
 @Composable
 private fun DatePickerDialog(
     onDateSelected: (String) -> Unit,

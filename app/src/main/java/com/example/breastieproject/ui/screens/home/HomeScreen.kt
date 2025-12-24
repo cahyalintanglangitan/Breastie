@@ -27,9 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.breastieproject.ui.theme.*
 import com.example.breastieproject.R
+import com.example.breastieproject.ui.theme.*
 import com.example.breastieproject.viewmodels.AuthViewModel
+import com.example.breastieproject.viewmodels.ReminderViewModel  // ✅ CRITICAL!
 
 // Data Classes (same as before)
 data class CarouselData(
@@ -55,16 +56,21 @@ fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onCheckUpClick: (String) -> Unit = {},
     onFaqClick: () -> Unit = {},
-    viewModel: AuthViewModel = viewModel()  // ✅ ADD VIEWMODEL!
+    viewModel: AuthViewModel = viewModel(),
+    reminderViewModel: ReminderViewModel = viewModel()
+
 ) {
     val scrollState = rememberScrollState()
 
     // ✅ GET CURRENT USER DATA
     val currentUser by viewModel.currentUser.collectAsState()
+    val nearestReminder by reminderViewModel.nearestReminder.collectAsState()
 
     // ✅ EXTRACT USER NAME (or default)
     val userName = currentUser?.fullName ?: "User"
     val userPhotoUrl = currentUser?.profilePhotoUrl
+
+
 
     // --- WARNA LOKAL ---
     val PinkDarkBox = Color(0xFFEC7FA9)
@@ -168,32 +174,69 @@ fun HomeScreen(
             }
 
             // --- BOX 2: Bagian Reminder ---
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(PinkLight)
-                    .padding(all = 16.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_3),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onReminderClick() }
-                    )
-                    Column(modifier = Modifier.padding(start = 12.dp)) {
-                        Text(
-                            "H-100: Your next clinical breast check is approaching.",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Black
+            if (nearestReminder != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PinkLight)
+                        .padding(all = 16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_3),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable { onReminderClick() }
                         )
-                        Text(
-                            "Tap to view schedule & recommendation",
-                            fontSize = 12.sp,
-                            color = Color(0xFF444444)
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(
+                                "${nearestReminder!!.daysUntil}: ${nearestReminder!!.name}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Black
+                            )
+                            Text(
+                                "📅 ${nearestReminder!!.date} - ${nearestReminder!!.doctor}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF444444)
+                            )
+                            Text(
+                                "Tap to view all schedules",
+                                fontSize = 11.sp,
+                                color = Color(0xFF666666)
+                            )
+                        }
+                    }
+                }
+            } else {
+                // ✅ Empty state when no reminders
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(PinkLight)
+                        .padding(all = 16.dp)
+                        .clickable { onReminderClick() }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_3),
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp)
                         )
+                        Column(modifier = Modifier.padding(start = 12.dp)) {
+                            Text(
+                                "No schedules yet",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Black
+                            )
+                            Text(
+                                "Tap to add a health schedule",
+                                fontSize = 12.sp,
+                                color = Color(0xFF444444)
+                            )
+                        }
                     }
                 }
             }

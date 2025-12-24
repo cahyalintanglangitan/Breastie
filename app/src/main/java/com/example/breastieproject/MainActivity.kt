@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel  // ✅ ADD THIS IMPORT!
-import com.example.breastieproject.screens.reminder.ReminderScreen
 import com.example.breastieproject.ui.components.BottomNavBar
 import com.example.breastieproject.ui.components.BreastieHeader
 import com.example.breastieproject.ui.screens.auth.SignInScreen
@@ -26,6 +25,7 @@ import com.example.breastieproject.ui.screens.profile.ContactSupportScreen
 import com.example.breastieproject.ui.screens.profile.EditProfileScreen
 import com.example.breastieproject.ui.screens.profile.ProfileScreen
 import com.example.breastieproject.ui.screens.profile.QuestionScreen
+import com.example.breastieproject.ui.screens.reminder.ReminderScreen
 import com.example.breastieproject.ui.theme.BackupTheme
 import com.example.breastieproject.viewmodels.AuthViewModel
 
