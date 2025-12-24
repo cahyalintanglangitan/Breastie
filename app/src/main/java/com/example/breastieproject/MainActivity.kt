@@ -1,5 +1,6 @@
 package com.example.breastieproject
 
+import CheckUpScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -202,33 +203,13 @@ fun MainScreen(
                 )
                 1 -> CommunityScreen()
                 2 -> ReminderScreen()
-                3 -> AIPlaceholder()
+                3 -> CheckUpScreen()
             }
         }
     }
 }
 
-@Composable
-fun AIPlaceholder() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "✨ AI Checkup",
-                fontSize = 24.sp,
-                color = Color(0xFFEC7FA9)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "(Alfa's Feature)",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-        }
-    }
-}
+
 
 
 /**
