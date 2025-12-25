@@ -1,6 +1,9 @@
 package com.example.breastieproject
 
 import CheckUpScreen
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.runtime.LaunchedEffect
+import android.util.Log
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -44,6 +47,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation() {
+    val auth = FirebaseAuth.getInstance()
+
+    LaunchedEffect(Unit) {
+        if (auth.currentUser == null) {
+            auth.signInAnonymously()
+                .addOnSuccessListener {
+                    Log.d("AUTH", "Anonymous login success: ${it.user?.uid}")
+                }
+                .addOnFailureListener {
+                    Log.e("AUTH", "Anonymous login failed", it)
+                }
+        } else {
+            Log.d("AUTH", "User already logged in: ${auth.currentUser?.uid}")
+        }
+    }
     var currentScreen by remember { mutableStateOf("onboarding") }
     val authViewModel: AuthViewModel = viewModel()  // ✅ NOW WORKS!
 
@@ -194,6 +212,7 @@ fun MainScreen(
                         // TODO: Navigate to reminder details
                     },
                     onCheckUpClick = { question ->
+                        selectedTab = 3
                         // TODO: Navigate to AI checkup with question
                     },
                     onFaqClick = {

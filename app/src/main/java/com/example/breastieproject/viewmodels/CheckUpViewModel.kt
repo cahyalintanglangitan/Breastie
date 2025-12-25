@@ -36,7 +36,26 @@ class CheckUpViewModel : ViewModel() {
     init {
         loadFAQs()
         loadChatHistory()
+        testGroq()
     }
+    private fun testGroq() {
+        viewModelScope.launch {
+            Log.d("TEST_GROQ", "Testing Groq API...")
+
+            val result = groqApi.getChatResponse(
+                "Saya sering nyeri di payudara kiri"
+            )
+
+            if (result.isSuccess) {
+                val (response, urgency) = result.getOrThrow()
+                Log.d("TEST_GROQ", "Response: $response")
+                Log.d("TEST_GROQ", "Urgency: $urgency")
+            } else {
+                Log.e("TEST_GROQ", "Error", result.exceptionOrNull())
+            }
+        }
+    }
+
 
     /**
      * Load FAQs from Firestore

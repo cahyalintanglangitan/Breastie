@@ -1,3 +1,4 @@
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,30 +16,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.breastieproject.data.model.CheckUpMessage
+import com.example.breastieproject.viewmodels.CheckUpViewModel
 
-/* ===== COLORS (SESUAI STYLE APP) ===== */
+/* ===== COLORS ===== */
 private val BgPink = Color(0xFFFFEDFA)
 private val PrimaryPink = Color(0xFFEC7FA9)
 private val SoftPink = Color(0xFFFFE4F2)
 private val TextGray = Color(0xFF6F6F6F)
 
-/* ===== DATA ===== */
-data class Message(val text: String, val isUser: Boolean)
+/* ===== QUICK QUESTION DATA ===== */
 data class Quick(val text: String, val used: Boolean)
 
 /* ===== MAIN SCREEN ===== */
 @Composable
-fun CheckUpScreen() {
+fun CheckUpScreen(
+    viewModel: CheckUpViewModel = viewModel()
+) {
+    Log.d("CHECKUP_SCREEN", "CheckUpScreen rendered")
 
     var input by remember { mutableStateOf("") }
-    var messages by remember { mutableStateOf(listOf<Message>()) }
+    val messages by viewModel.messages.collectAsState()
 
     var quicks by remember {
         mutableStateOf(
             listOf(
                 Quick("What causes breast pain?", false),
-                Quick("How to do breast self-exam?", false),
-                Quick("When should I see a doctor?", false)
+                Quick("How do I perform a proper breast self-examination?", false),
+                Quick("When should I consult a doctor?", false),
+                Quick("Are breast lumps always dangerous?", false)
             )
         )
     }
@@ -49,7 +56,7 @@ fun CheckUpScreen() {
             .background(BgPink)
     ) {
 
-        /* ===== AI PROFILE CARD ===== */
+        /* ===== HEADER ===== */
         Row(
             modifier = Modifier
                 .padding(16.dp)
@@ -63,11 +70,7 @@ fun CheckUpScreen() {
                     .background(PrimaryPink, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "C",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("C", color = Color.White, fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.width(12.dp))
@@ -86,7 +89,8 @@ fun CheckUpScreen() {
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 12.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(messages) { msg ->
                 ChatBubble(msg)
@@ -109,10 +113,7 @@ fun CheckUpScreen() {
                         )
                         .border(1.dp, PrimaryPink, RoundedCornerShape(50))
                         .clickable(enabled = !q.used) {
-                            messages = messages +
-                                    Message(q.text, true) +
-                                    Message(dummyAnswer(), false)
-
+                            viewModel.sendMessage(q.text)
                             quicks = quicks.toMutableList().also {
                                 it[index] = q.copy(used = true)
                             }
@@ -139,7 +140,7 @@ fun CheckUpScreen() {
             TextField(
                 value = input,
                 onValueChange = { input = it },
-                placeholder = { Text("Ask Carey anything...") },
+                placeholder = { Text("Ask anything about breast health…") },
                 modifier = Modifier.weight(1f),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
@@ -155,9 +156,7 @@ fun CheckUpScreen() {
                     .background(PrimaryPink, CircleShape)
                     .clickable {
                         if (input.isNotBlank()) {
-                            messages = messages +
-                                    Message(input, true) +
-                                    Message(dummyAnswer(), false)
+                            viewModel.sendMessage(input)
                             input = ""
                         }
                     },
@@ -168,7 +167,7 @@ fun CheckUpScreen() {
         }
 
         Text(
-            "General health information, not medical advice",
+            "This information is for educational purposes only and not a substitute for medical advice.",
             fontSize = 11.sp,
             color = TextGray,
             modifier = Modifier
@@ -179,31 +178,30 @@ fun CheckUpScreen() {
     }
 }
 
-/* ===== CHAT BUBBLE ===== */
+/* ===== CHAT BUBBLE (AMAN & HALUS) ===== */
 @Composable
-fun ChatBubble(msg: Message) {
+fun ChatBubble(msg: CheckUpMessage) {
+    val isUser = msg.role == "user"
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (msg.isUser) Arrangement.End else Arrangement.Start
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         Box(
             modifier = Modifier
-                .padding(4.dp)
+                .padding(vertical = 4.dp)
                 .background(
-                    if (msg.isUser) PrimaryPink else Color.White,
+                    if (isUser) PrimaryPink else Color.White,
                     RoundedCornerShape(18.dp)
                 )
-                .padding(12.dp)
-                .widthIn(max = 260.dp)
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .widthIn(max = 280.dp)
         ) {
             Text(
-                msg.text,
-                color = if (msg.isUser) Color.White else Color.Black
+                text = msg.content,
+                fontSize = 14.sp,
+                color = if (isUser) Color.White else Color.Black
             )
         }
     }
 }
-
-/* ===== DUMMY AI ANSWER ===== */
-private fun dummyAnswer(): String =
-    "I can provide general breast health information. If symptoms persist, please consult a healthcare professional."

@@ -1,7 +1,7 @@
 package com.example.breastieproject.data.repository
 
 import android.util.Log
-//import com.example.breastieproject.BuildConfig
+import com.example.breastieproject.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -14,7 +14,7 @@ import java.net.URL
 
 class GroqApiRepository {
 
-//    private val apiKey = BuildConfig.GROQ_API_KEY
+    private val apiKey = BuildConfig.GROQ_API_KEY
     private val apiUrl = "https://api.groq.com/openai/v1/chat/completions"
 
     private val systemPrompt = """
@@ -80,12 +80,13 @@ class GroqApiRepository {
                 put("max_tokens", 800)
             }
 
+            Log.d("GROQ_API", "Using API Key: ${apiKey.take(6)}****")
             val url = URL(apiUrl)
             val connection = url.openConnection() as HttpURLConnection
 
             connection.apply {
                 requestMethod = "POST"
-//                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Authorization", "Bearer $apiKey")
                 setRequestProperty("Content-Type", "application/json")
                 doOutput = true
                 connectTimeout = 30000

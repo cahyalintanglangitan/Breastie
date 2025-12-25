@@ -2,6 +2,7 @@ package com.example.breastieproject.ui.screens.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -10,6 +11,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -30,6 +33,7 @@ import coil.compose.AsyncImage
 import com.example.breastieproject.R
 import com.example.breastieproject.ui.theme.*
 import com.example.breastieproject.viewmodels.AuthViewModel
+import com.example.breastieproject.viewmodels.CheckUpViewModel
 import com.example.breastieproject.viewmodels.ReminderViewModel  // ✅ CRITICAL!
 
 // Data Classes (same as before)
@@ -44,11 +48,11 @@ data class InsightData(
     val text: String
 )
 
-data class FaqData(
-    val icon: Int,
-    val question: String,
-    val sub: String
-)
+//data class FaqData(
+//    val icon: Int,
+//    val question: String,
+//    val sub: String
+//)
 
 @Composable
 fun HomeScreen(
@@ -57,13 +61,14 @@ fun HomeScreen(
     onCheckUpClick: (String) -> Unit = {},
     onFaqClick: () -> Unit = {},
     viewModel: AuthViewModel = viewModel(),
-    reminderViewModel: ReminderViewModel = viewModel()
-
+    reminderViewModel: ReminderViewModel = viewModel(),
+    checkUpViewModel: CheckUpViewModel = viewModel()
 ) {
     val scrollState = rememberScrollState()
 
     // ✅ GET CURRENT USER DATA
     val currentUser by viewModel.currentUser.collectAsState()
+    val faqs by checkUpViewModel.faqs.collectAsState()
     val nearestReminder by reminderViewModel.nearestReminder.collectAsState()
 
     // ✅ EXTRACT USER NAME (or default)
@@ -103,16 +108,19 @@ fun HomeScreen(
         InsightData(R.drawable.ic_sleep, "Rest isn't quitting — healing.")
     )
 
-    val faqItems = listOf(
-        FaqData(R.drawable.ic_11, "How to perform a self-breast exam properly?", "Explore tips and techniques"),
-        FaqData(R.drawable.ic_12, "5 early signs you should never ignore", "Be informed, stay safe"),
-        FaqData(R.drawable.ic_13, "Why hormone cycles affect breast texture?", "Understanding your body"),
-        FaqData(R.drawable.ic_14, "What your breast pain may actually mean", "Learn the causes"),
-        FaqData(R.drawable.ic_15, "Best foods for breast tissue health", "Diet tips for wellness"),
-        FaqData(R.drawable.ic_16, "Caffeine lifestyle and breast tenderness explained?", "Find balance in consumption"),
-        FaqData(R.drawable.ic_17, "How often should women do self-checks?", "Frequency and maintenance"),
-        FaqData(R.drawable.ic_18, "Understanding breast lumps: benign vs risky", "Know the differences")
-    )
+//    val faqItems = listOf(
+//        FaqData(R.drawable.ic_11, "How to perform a proper breast self-exam?", "Step-by-step guidance"),
+//        FaqData(R.drawable.ic_12, "What are early signs of breast cancer?", "Symptoms to be aware of"),
+//        FaqData(R.drawable.ic_13, "Why does breast pain occur?", "Common causes explained"),
+//        FaqData(R.drawable.ic_14, "When should I consult a doctor?", "Know the right time"),
+//        FaqData(R.drawable.ic_15, "Are all breast lumps dangerous?", "Benign vs concerning lumps"),
+//        FaqData(R.drawable.ic_16, "How does menstrual cycle affect breasts?", "Hormonal changes"),
+//        FaqData(R.drawable.ic_17, "Is breast pain always related to cancer?", "Understanding the risks"),
+//        FaqData(R.drawable.ic_18, "What lifestyle habits support breast health?", "Daily prevention tips"),
+//        FaqData(R.drawable.ic_14, "How often should breast checks be done?", "Recommended frequency"),
+//        FaqData(R.drawable.ic_18, "Can stress affect breast health?", "Mind–body connection")
+//    )
+
 
     Column(
         modifier = Modifier
@@ -573,13 +581,15 @@ fun HomeScreen(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        faqItems.forEach { item ->
+                        faqs.forEach { faq ->
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onCheckUpClick(item.question) }
+                                    .clickable {
+                                        onCheckUpClick(faq.question)
+                                    }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -589,32 +599,33 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(FaqIconBg),
+                                            .background(Color(0xFFF5F5F5)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Image(
-                                            painter = painterResource(item.icon),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp)
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null
                                         )
                                     }
+
                                     Spacer(modifier = Modifier.width(12.dp))
+
                                     Column {
                                         Text(
-                                            item.question,
+                                            text = faq.question,
                                             fontWeight = FontWeight.SemiBold,
-                                            fontSize = 14.sp,
-                                            color = Color.Black
+                                            fontSize = 14.sp
                                         )
                                         Text(
-                                            item.sub,
-                                            fontSize = 12.sp,
+                                            text = faq.category.uppercase(),
+                                            fontSize = 11.sp,
                                             color = Color.Gray
                                         )
                                     }
                                 }
                             }
                         }
+
                     }
                 }
             }

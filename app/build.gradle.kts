@@ -23,8 +23,9 @@ android {
         buildConfigField(
             "String",
             "GROQ_API_KEY",
-            "\"${project.properties["GROQ_API_KEY"]}\""
+            "\"${findProperty("GROQ_API_KEY") ?: ""}\""
         )
+
     }
 
     buildTypes {
