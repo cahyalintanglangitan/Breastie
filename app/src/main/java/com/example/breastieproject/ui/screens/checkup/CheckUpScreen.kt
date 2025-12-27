@@ -32,12 +32,19 @@ data class Quick(val text: String, val used: Boolean)
 /* ===== MAIN SCREEN ===== */
 @Composable
 fun CheckUpScreen(
+    initialQuestion: String? = null,
     viewModel: CheckUpViewModel = viewModel()
 ) {
     Log.d("CHECKUP_SCREEN", "CheckUpScreen rendered")
 
     var input by remember { mutableStateOf("") }
     val messages by viewModel.messages.collectAsState()
+
+    LaunchedEffect(initialQuestion) {
+        if (!initialQuestion.isNullOrBlank()) {
+            viewModel.sendMessage(initialQuestion)
+        }
+    }
 
     var quicks by remember {
         mutableStateOf(
@@ -90,9 +97,10 @@ fun CheckUpScreen(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 12.dp),
+            reverseLayout = true,
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            items(messages) { msg ->
+            items(messages.reversed()) { msg ->
                 ChatBubble(msg)
             }
         }

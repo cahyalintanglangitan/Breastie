@@ -182,6 +182,7 @@ fun MainScreen(
     authViewModel: AuthViewModel = viewModel()  // ✅ ADD PARAMETER!
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedQuestion by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -212,6 +213,7 @@ fun MainScreen(
                         // TODO: Navigate to reminder details
                     },
                     onCheckUpClick = { question ->
+                        selectedQuestion = question
                         selectedTab = 3
                         // TODO: Navigate to AI checkup with question
                     },
@@ -222,7 +224,9 @@ fun MainScreen(
                 )
                 1 -> CommunityScreen()
                 2 -> ReminderScreen()
-                3 -> CheckUpScreen()
+                3 -> CheckUpScreen(
+                    initialQuestion = selectedQuestion
+                )
             }
         }
     }

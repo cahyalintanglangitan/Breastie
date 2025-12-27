@@ -36,14 +36,14 @@ class CheckUpViewModel : ViewModel() {
     init {
         loadFAQs()
         loadChatHistory()
-        testGroq()
+//        testGroq()
     }
     private fun testGroq() {
         viewModelScope.launch {
             Log.d("TEST_GROQ", "Testing Groq API...")
 
             val result = groqApi.getChatResponse(
-                "Saya sering nyeri di payudara kiri"
+                "I often experience pain in my left breast"
             )
 
             if (result.isSuccess) {
@@ -195,13 +195,13 @@ class CheckUpViewModel : ViewModel() {
 
             } catch (e: Exception) {
                 Log.e("CHECKUP_VM", "Error sending message", e)
-                _errorMessage.value = "Gagal mengirim pesan: ${e.message}"
+                _errorMessage.value = "Failed to send message: ${e.message}"
 
                 // Add error message to chat
                 val errorMessage = CheckUpMessage(
                     id = "error_${System.currentTimeMillis()}",
                     role = "assistant",
-                    content = "Maaf, terjadi kesalahan. Silakan coba lagi.",
+                    content = "Sorry, something went wrong. Please try again.",
                     timestamp = System.currentTimeMillis(),
                     urgency = "low"
                 )
@@ -220,9 +220,10 @@ class CheckUpViewModel : ViewModel() {
         // Look for recommendation keywords
         val lines = content.split("\\n")
         val recLine = lines.find {
-            it.contains("REKOMENDASI", ignoreCase = true) ||
-                    it.contains("Sebaiknya", ignoreCase = true) ||
-                    it.contains("Saran", ignoreCase = true)
+            it.contains("RECOMMENDATION", ignoreCase = true) ||
+                    it.contains("You should", ignoreCase = true) ||
+                    it.contains("It is recommended", ignoreCase = true)
+
         }
         return recLine?.trim() ?: ""
     }
@@ -261,36 +262,36 @@ class CheckUpViewModel : ViewModel() {
         return listOf(
             CheckUpFAQ(
                 id = "faq1",
-                question = "Apa gejala awal kanker payudara?",
+                question = "Does breast pain always indicate breast cancer?",
                 category = "symptoms",
                 order = 1,
                 isActive = true
             ),
             CheckUpFAQ(
                 id = "faq2",
-                question = "Kapan saya harus segera ke dokter?",
+                question = "When should I see a doctor immediately for breast changes?",
                 category = "urgent",
                 order = 2,
                 isActive = true
             ),
             CheckUpFAQ(
                 id = "faq3",
-                question = "Bagaimana cara deteksi dini?",
-                category = "prevention",
+                question = "Is a new breast lump always a sign of cancer?",
+                category = "urgent",
                 order = 3,
                 isActive = true
             ),
             CheckUpFAQ(
                 id = "faq4",
-                question = "Apakah benjolan selalu berarti kanker?",
-                category = "symptoms",
+                question = "How can I perform a proper breast self-examination?",
+                category = "prevention",
                 order = 4,
                 isActive = true
             ),
             CheckUpFAQ(
                 id = "faq5",
-                question = "Apa faktor risiko kanker payudara?",
-                category = "risk",
+                question = "What are the early symptoms of breast cancer?",
+                category = "symptoms",
                 order = 5,
                 isActive = true
             )
