@@ -63,11 +63,27 @@ class CommunityViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    // ✅ FIXED INIT BLOCK
     init {
+        Log.d("COMMUNITY_VM", "ViewModel initialized")
+
         loadCommunities()
         loadUserJoinedCommunities()
-        loadFeedPosts()
         loadUserLikedPosts()
+
+        // ✅ FIX: Auto-reload feed when joined communities change
+        viewModelScope.launch {
+            _joinedCommunityIds.collect { joinedIds ->
+                Log.d("COMMUNITY_VM", "Joined communities changed: ${joinedIds.size} communities")
+                if (joinedIds.isNotEmpty()) {
+                    Log.d("COMMUNITY_VM", "Auto-reloading feed...")
+                    loadFeedPosts()
+                } else {
+                    Log.d("COMMUNITY_VM", "No joined communities, clearing feed")
+                    _feedPosts.value = emptyList()
+                }
+            }
+        }
     }
 
     // ==================== COMMUNITY OPERATIONS ====================
@@ -92,10 +108,10 @@ class CommunityViewModel : ViewModel() {
                 }
 
                 _allCommunities.value = communities
-                Log.d("COMMUNITY_VM", "Loaded ${communities.size} communities")
+                Log.d("COMMUNITY_VM", "✅ Loaded ${communities.size} communities")
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error loading communities", e)
+                Log.e("COMMUNITY_VM", "❌ Error loading communities", e)
                 _errorMessage.value = "Failed to load communities: ${e.message}"
             } finally {
                 _isLoading.value = false
@@ -109,7 +125,13 @@ class CommunityViewModel : ViewModel() {
     fun loadUserJoinedCommunities() {
         viewModelScope.launch {
             try {
-                val userId = auth.currentUser?.uid ?: return@launch
+                val userId = auth.currentUser?.uid
+                if (userId == null) {
+                    Log.d("COMMUNITY_VM", "User not logged in, clearing joined communities")
+                    _joinedCommunityIds.value = emptyList()
+                    return@launch
+                }
+
                 Log.d("COMMUNITY_VM", "Loading joined communities for user: $userId")
 
                 val snapshot = firestore.collection("community_members")
@@ -122,10 +144,13 @@ class CommunityViewModel : ViewModel() {
                 }
 
                 _joinedCommunityIds.value = joinedIds
-                Log.d("COMMUNITY_VM", "User joined ${joinedIds.size} communities")
+                Log.d("COMMUNITY_VM", "✅ User joined ${joinedIds.size} communities: $joinedIds")
+
+                // ✅ Feed will auto-reload via Flow collect in init
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error loading joined communities", e)
+                Log.e("COMMUNITY_VM", "❌ Error loading joined communities", e)
+                _joinedCommunityIds.value = emptyList()
             }
         }
     }
@@ -150,7 +175,7 @@ class CommunityViewModel : ViewModel() {
                     .add(memberData)
                     .await()
 
-                // Update local state
+                // ✅ Update local state (will trigger feed reload via Flow)
                 _joinedCommunityIds.value = _joinedCommunityIds.value + communityId
 
                 // Increment member count
@@ -159,13 +184,13 @@ class CommunityViewModel : ViewModel() {
                     .update("memberCount", com.google.firebase.firestore.FieldValue.increment(1))
                     .await()
 
-                Log.d("COMMUNITY_VM", "Joined community successfully!")
+                Log.d("COMMUNITY_VM", "✅ Joined community successfully!")
 
                 // Reload communities to get updated count
                 loadCommunities()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error joining community", e)
+                Log.e("COMMUNITY_VM", "❌ Error joining community", e)
                 _errorMessage.value = "Failed to join community: ${e.message}"
             }
         }
@@ -191,7 +216,7 @@ class CommunityViewModel : ViewModel() {
                     doc.reference.delete().await()
                 }
 
-                // Update local state
+                // ✅ Update local state (will trigger feed reload via Flow)
                 _joinedCommunityIds.value = _joinedCommunityIds.value - communityId
 
                 // Decrement member count
@@ -200,13 +225,13 @@ class CommunityViewModel : ViewModel() {
                     .update("memberCount", com.google.firebase.firestore.FieldValue.increment(-1))
                     .await()
 
-                Log.d("COMMUNITY_VM", "Left community successfully!")
+                Log.d("COMMUNITY_VM", "✅ Left community successfully!")
 
                 // Reload communities
                 loadCommunities()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error leaving community", e)
+                Log.e("COMMUNITY_VM", "❌ Error leaving community", e)
                 _errorMessage.value = "Failed to leave community: ${e.message}"
             }
         }
@@ -235,7 +260,7 @@ class CommunityViewModel : ViewModel() {
                         }
 
                         val messagesList = snapshot?.documents?.mapNotNull { doc ->
-                            doc.toObject(ChatMessage::class.java)?.copy(id = doc.id)  // ✅ Correct!
+                            doc.toObject(ChatMessage::class.java)?.copy(id = doc.id)
                         } ?: emptyList()
 
                         _messages.value = messagesList
@@ -299,8 +324,6 @@ class CommunityViewModel : ViewModel() {
         _messages.value = emptyList()
     }
 
-
-
     // ==================== POST OPERATIONS ====================
 
     /**
@@ -318,24 +341,21 @@ class CommunityViewModel : ViewModel() {
                     return@launch
                 }
 
-                Log.d("COMMUNITY_VM", "Loading feed posts...")
-
                 // Get user's joined communities
                 val joinedIds = _joinedCommunityIds.value
 
+                Log.d("COMMUNITY_VM", "Loading feed posts from ${joinedIds.size} communities: $joinedIds")
+
                 if (joinedIds.isEmpty()) {
-                    // ✅ No communities joined = no posts!
-                    Log.d("COMMUNITY_VM", "User hasn't joined any communities - empty feed")
+                    Log.d("COMMUNITY_VM", "No joined communities - empty feed")
                     _feedPosts.value = emptyList()
                     _isLoading.value = false
                     return@launch
                 }
 
-                Log.d("COMMUNITY_VM", "Loading posts from ${joinedIds.size} joined communities")
-
-                // ✅ Only load posts from joined communities
+                // ✅ Load posts from joined communities
                 val snapshot = firestore.collection("posts")
-                    .whereIn("communityId", joinedIds)  // ✅ FILTER BY JOINED!
+                    .whereIn("communityId", joinedIds)
                     .orderBy("timestamp", Query.Direction.DESCENDING)
                     .limit(50)
                     .get()
@@ -346,12 +366,12 @@ class CommunityViewModel : ViewModel() {
                 }
 
                 _feedPosts.value = posts
-                Log.d("COMMUNITY_VM", "Loaded ${posts.size} posts from joined communities")
+                Log.d("COMMUNITY_VM", "✅ Loaded ${posts.size} feed posts")
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error loading posts", e)
+                Log.e("COMMUNITY_VM", "❌ Error loading posts", e)
                 _errorMessage.value = "Failed to load posts: ${e.message}"
-                _feedPosts.value = emptyList()  // ✅ Empty on error
+                _feedPosts.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -387,24 +407,24 @@ class CommunityViewModel : ViewModel() {
                     "likes" to 0,
                     "commentCount" to 0,
                     "timestamp" to System.currentTimeMillis()
-                    // ❌ REMOVE: "createdAt" to "Just now"
                 )
 
                 firestore.collection("posts")
                     .add(postData)
                     .await()
 
-                Log.d("COMMUNITY_VM", "Post created successfully!")
+                Log.d("COMMUNITY_VM", "✅ Post created successfully!")
+
+                // ✅ Reload feed (will show new post)
                 loadFeedPosts()
                 onSuccess()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error creating post", e)
+                Log.e("COMMUNITY_VM", "❌ Error creating post", e)
                 _errorMessage.value = "Failed to create post: ${e.message}"
             }
         }
     }
-
 
     /**
      * Load posts that current user has liked
@@ -425,14 +445,13 @@ class CommunityViewModel : ViewModel() {
                 }.toSet()
 
                 _likedPostIds.value = likedIds
-                Log.d("COMMUNITY_VM", "Loaded ${likedIds.size} liked posts")
+                Log.d("COMMUNITY_VM", "✅ Loaded ${likedIds.size} liked posts")
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error loading liked posts", e)
+                Log.e("COMMUNITY_VM", "❌ Error loading liked posts", e)
             }
         }
     }
-
 
     /**
      * Like/unlike a post
@@ -467,10 +486,10 @@ class CommunityViewModel : ViewModel() {
                         .update("likes", com.google.firebase.firestore.FieldValue.increment(1))
                         .await()
 
-                    // ✅ Update local state
+                    // Update local state
                     _likedPostIds.value = _likedPostIds.value + postId
 
-                    Log.d("COMMUNITY_VM", "Post liked!")
+                    Log.d("COMMUNITY_VM", "✅ Post liked!")
                 } else {
                     // Unlike post
                     likeSnapshot.documents.forEach { doc ->
@@ -483,17 +502,17 @@ class CommunityViewModel : ViewModel() {
                         .update("likes", com.google.firebase.firestore.FieldValue.increment(-1))
                         .await()
 
-                    // ✅ Update local state
+                    // Update local state
                     _likedPostIds.value = _likedPostIds.value - postId
 
-                    Log.d("COMMUNITY_VM", "Post unliked!")
+                    Log.d("COMMUNITY_VM", "✅ Post unliked!")
                 }
 
                 // Reload feed
                 loadFeedPosts()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error toggling like", e)
+                Log.e("COMMUNITY_VM", "❌ Error toggling like", e)
             }
         }
     }
@@ -524,13 +543,13 @@ class CommunityViewModel : ViewModel() {
                     .delete()
                     .await()
 
-                Log.d("COMMUNITY_VM", "Post deleted!")
+                Log.d("COMMUNITY_VM", "✅ Post deleted!")
 
                 // Reload feed
                 loadFeedPosts()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error deleting post", e)
+                Log.e("COMMUNITY_VM", "❌ Error deleting post", e)
                 _errorMessage.value = "Failed to delete post: ${e.message}"
             }
         }
@@ -557,10 +576,10 @@ class CommunityViewModel : ViewModel() {
                 }
 
                 _comments.value = comments
-                Log.d("COMMUNITY_VM", "Loaded ${comments.size} comments")
+                Log.d("COMMUNITY_VM", "✅ Loaded ${comments.size} comments")
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error loading comments", e)
+                Log.e("COMMUNITY_VM", "❌ Error loading comments", e)
             }
         }
     }
@@ -606,14 +625,14 @@ class CommunityViewModel : ViewModel() {
                     .update("commentCount", com.google.firebase.firestore.FieldValue.increment(1))
                     .await()
 
-                Log.d("COMMUNITY_VM", "Comment added!")
+                Log.d("COMMUNITY_VM", "✅ Comment added!")
 
                 // Reload comments
                 loadComments(postId)
                 onSuccess()
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error adding comment", e)
+                Log.e("COMMUNITY_VM", "❌ Error adding comment", e)
                 _errorMessage.value = "Failed to add comment: ${e.message}"
             }
         }
@@ -651,13 +670,13 @@ class CommunityViewModel : ViewModel() {
                     .update("commentCount", com.google.firebase.firestore.FieldValue.increment(-1))
                     .await()
 
-                Log.d("COMMUNITY_VM", "Comment deleted!")
+                Log.d("COMMUNITY_VM", "✅ Comment deleted!")
 
                 // Reload comments
                 loadComments(postId)
 
             } catch (e: Exception) {
-                Log.e("COMMUNITY_VM", "Error deleting comment", e)
+                Log.e("COMMUNITY_VM", "❌ Error deleting comment", e)
                 _errorMessage.value = "Failed to delete comment: ${e.message}"
             }
         }

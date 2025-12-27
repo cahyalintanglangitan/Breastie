@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +39,7 @@ fun ProfileScreen(
 ) {
     val currentUser by viewModel.currentUser.collectAsState()
     val scrollState = rememberScrollState()
+    val context = LocalContext.current  // ✅ GET CONTEXT
 
     // Format date
     val memberSince = currentUser?.createdAt?.let { timestamp ->
@@ -62,7 +64,6 @@ fun ProfileScreen(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // ✅ BACK BUTTON
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
@@ -71,7 +72,6 @@ fun ProfileScreen(
                     )
                 }
 
-                // Title
                 Text(
                     text = "Profile",
                     fontSize = 20.sp,
@@ -236,7 +236,18 @@ fun ProfileScreen(
             items = listOf(
                 MenuItem(Icons.Default.Edit, "Edit Profile", onEditProfile),
                 MenuItem(Icons.Default.Lock, "Change Password", onChangePassword),
-                MenuItem(Icons.Default.Logout, "Sign Out", onSignOut, isDestructive = true)
+                MenuItem(
+                    icon = Icons.Default.Logout,
+                    title = "Sign Out",
+                    onClick = {
+                        // ✅ CALL VIEWMODEL DIRECTLY!
+                        viewModel.signOut(context) {
+                            // Activity will restart, old callback not needed
+                            onSignOut()  // Keep for backward compatibility
+                        }
+                    },
+                    isDestructive = true
+                )
             )
         )
 

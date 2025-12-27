@@ -1,11 +1,15 @@
 package com.example.breastieproject.viewmodels
 
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.breastieproject.data.model.User
 import com.example.breastieproject.ui.state.AuthState
+import com.example.breastieproject.MainActivity  // ✅ ADD THIS IMPORT
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -232,6 +236,53 @@ class AuthViewModel : ViewModel() {
         }
     }
 
+    // ✅ UPDATED: Sign out with activity restart
+    fun signOut(context: Context, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val currentEmail = auth.currentUser?.email
+
+                Log.d("AUTH_VM", "==========================================")
+                Log.d("AUTH_VM", "SIGN OUT INITIATED")
+                Log.d("AUTH_VM", "Current user: $currentEmail")
+                Log.d("AUTH_VM", "==========================================")
+
+                // ✅ Sign out from Firebase
+                auth.signOut()
+
+                // ✅ Clear local state
+                _currentUser.value = null
+                _authState.value = AuthState.Idle
+                _updateState.value = UpdateState.Idle
+
+                Log.d("AUTH_VM", "✅ Firebase sign out successful")
+                Log.d("AUTH_VM", "✅ Local state cleared")
+                Log.d("AUTH_VM", "🔄 Restarting activity to clear all ViewModels...")
+
+                // ✅ CRITICAL: Restart activity to destroy all ViewModels
+                val intent = Intent(context, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+
+                // ✅ Kill current activity
+                if (context is Activity) {
+                    context.finish()
+                }
+
+                Log.d("AUTH_VM", "✅ Activity restart triggered")
+                Log.d("AUTH_VM", "==========================================")
+
+                onSuccess()
+
+            } catch (e: Exception) {
+                Log.e("AUTH_VM", "❌ Error during sign out", e)
+                _authState.value = AuthState.Error("Sign out failed: ${e.message}")
+            }
+        }
+    }
+
+    // ✅ KEEP: Old signOut() for backward compatibility (deprecated)
+    @Deprecated("Use signOut(context) instead", ReplaceWith("signOut(context)"))
     fun signOut() {
         auth.signOut()
         _currentUser.value = null
@@ -267,14 +318,11 @@ class AuthViewModel : ViewModel() {
             "Spirit", "Flame", "Star", "Moon", "Sun"
         )
 
-        // ✅ Use timestamp as random seed for true randomness
         val seed = System.currentTimeMillis()
         val random = kotlin.random.Random(seed)
 
         val adj = adjectives.random(random)
         val noun = nouns.random(random)
-
-        // ✅ Add unique 4-digit ID from timestamp
         val uniqueId = seed.toString().takeLast(4)
 
         return "$adj $noun #$uniqueId"

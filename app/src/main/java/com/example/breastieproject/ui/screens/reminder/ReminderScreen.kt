@@ -6,12 +6,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.breastieproject.viewmodels.ReminderViewModel
+import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
@@ -30,9 +33,9 @@ fun ReminderScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     // Local form states
-    var scheduleName by remember { mutableStateOf("") }      // ✅ jadwal → scheduleName
-    var scheduleDate by remember { mutableStateOf("") }      // ✅ tanggal → scheduleDate
-    var doctorName by remember { mutableStateOf("") }        // ✅ dokter → doctorName
+    var scheduleName by remember { mutableStateOf("") }
+    var scheduleDate by remember { mutableStateOf("") }
+    var doctorName by remember { mutableStateOf("") }
     var showMessage by remember { mutableStateOf(false) }
     var messageText by remember { mutableStateOf("") }
 
@@ -49,16 +52,19 @@ fun ReminderScreen(
         ) {
             WelcomeCard()
             Spacer(modifier = Modifier.height(24.dp))
-            DateSelector()
+
+            // ✅ UPDATED: Dynamic DateSelector with reminders
+            DateSelector(reminders = reminders)
+
             Spacer(modifier = Modifier.height(24.dp))
 
             FormCard(
-                scheduleName = scheduleName,                 // ✅ Updated
-                onScheduleNameChange = { scheduleName = it }, // ✅ Updated
-                scheduleDate = scheduleDate,                 // ✅ Updated
-                onScheduleDateChange = { scheduleDate = it }, // ✅ Updated
-                doctorName = doctorName,                     // ✅ Updated
-                onDoctorNameChange = { doctorName = it },    // ✅ Updated
+                scheduleName = scheduleName,
+                onScheduleNameChange = { scheduleName = it },
+                scheduleDate = scheduleDate,
+                onScheduleDateChange = { scheduleDate = it },
+                doctorName = doctorName,
+                onDoctorNameChange = { doctorName = it },
                 onSubmit = {
                     if (scheduleName.isNotEmpty() && scheduleDate.isNotEmpty() && doctorName.isNotEmpty()) {
                         viewModel.addReminder(
@@ -66,7 +72,7 @@ fun ReminderScreen(
                             date = scheduleDate,
                             doctor = doctorName,
                             onSuccess = {
-                                messageText = "Schedule added successfully!" // ✅ English
+                                messageText = "Schedule added successfully!"
                                 showMessage = true
 
                                 // Reset form
@@ -76,7 +82,7 @@ fun ReminderScreen(
                             }
                         )
                     } else {
-                        messageText = "Please fill all fields!" // ✅ English
+                        messageText = "Please fill all fields!"
                         showMessage = true
                     }
                 }
@@ -84,13 +90,13 @@ fun ReminderScreen(
 
             if (reminders.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                ScheduleListCard(                             // ✅ DaftarJadwalCard → ScheduleListCard
-                    schedules = reminders,                    // ✅ daftarJadwal → schedules
+                ScheduleListCard(
+                    schedules = reminders,
                     onDelete = { reminderId ->
                         viewModel.deleteReminder(
                             reminderId = reminderId,
                             onSuccess = {
-                                messageText = "Schedule deleted successfully!" // ✅ English
+                                messageText = "Schedule deleted successfully!"
                                 showMessage = true
                             }
                         )
@@ -121,7 +127,7 @@ fun ReminderScreen(
                         Text("OK", color = Color.White)
                     }
                 },
-                containerColor = if (messageText.contains("successfully")) // ✅ berhasil → successfully
+                containerColor = if (messageText.contains("successfully"))
                     Color(0xFF4CAF50) else Color(0xFFFF5252)
             ) {
                 Text(errorMessage ?: messageText)
@@ -136,6 +142,188 @@ fun ReminderScreen(
     }
 }
 
+// ========================================
+// ✅ NEW: DYNAMIC DATE SELECTOR
+// ========================================
+
+/**
+ * Data class for calendar date
+ */
+private data class CalendarDate(
+    val dayOfMonth: Int,
+    val dayOfWeek: String,
+    val month: String,
+    val year: Int,
+    val isToday: Boolean,
+    val fullDate: String  // "28/12/2024" format
+)
+
+/**
+ * Dynamic Date Selector with real dates and schedule indicators
+ */
+@Composable
+private fun DateSelector(
+    reminders: List<com.example.breastieproject.data.model.Reminder>
+) {
+    // ✅ Generate dates dynamically (7 days before + today + 7 days after)
+    val dates = remember {
+        generateCalendarDates(daysRange = 14)  // Show 2 weeks
+    }
+
+    // ✅ Create map of dates with reminders
+    val datesWithReminders = remember(reminders) {
+        reminders.map { it.date }.toSet()
+    }
+
+    // ✅ Scroll state with auto-scroll to today
+    val scrollState = rememberScrollState()
+    val todayIndex = dates.indexOfFirst { it.isToday }
+
+    // ✅ Auto-scroll to today on first load
+    LaunchedEffect(Unit) {
+        if (todayIndex >= 0) {
+            scrollState.animateScrollTo(todayIndex * 68) // 60dp width + 8dp spacing
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(scrollState),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        dates.forEachIndexed { index, date ->
+            DateItem(
+                date = date,
+                hasSchedule = datesWithReminders.contains(date.fullDate)
+            )
+        }
+    }
+}
+
+/**
+ * Generate calendar dates dynamically
+ * @param daysRange: Total days to show (e.g., 14 = 2 weeks)
+ */
+private fun generateCalendarDates(daysRange: Int = 14): List<CalendarDate> {
+    val calendar = Calendar.getInstance()
+    val today = calendar.clone() as Calendar
+    val dates = mutableListOf<CalendarDate>()
+
+    // Start from (daysRange/2) days ago
+    calendar.add(Calendar.DAY_OF_MONTH, -(daysRange / 2))
+
+    // Generate dates
+    repeat(daysRange) {
+        val isToday = calendar.get(Calendar.DAY_OF_MONTH) == today.get(Calendar.DAY_OF_MONTH) &&
+                calendar.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
+                calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR)
+
+        val dayOfWeek = SimpleDateFormat("EEE", Locale.ENGLISH).format(calendar.time)
+        val month = SimpleDateFormat("MMM", Locale.ENGLISH).format(calendar.time)
+        val fullDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(calendar.time)
+
+        dates.add(
+            CalendarDate(
+                dayOfMonth = calendar.get(Calendar.DAY_OF_MONTH),
+                dayOfWeek = dayOfWeek,
+                month = month,
+                year = calendar.get(Calendar.YEAR),
+                isToday = isToday,
+                fullDate = fullDate
+            )
+        )
+
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+    }
+
+    return dates
+}
+
+/**
+ * Enhanced Date Item with schedule indicator
+ */
+@Composable
+private fun DateItem(
+    date: CalendarDate,
+    hasSchedule: Boolean
+) {
+    // ✅ Dynamic colors based on state
+    val backgroundColor = if (date.isToday) {
+        Color(0xFFEC7FA9)  // Pink for today
+    } else {
+        Color(0xFFFFE4E9)  // Light pink for other days
+    }
+
+    val textColor = if (date.isToday) {
+        Color.White
+    } else {
+        Color.Black
+    }
+
+    Box(
+        modifier = Modifier
+            .width(60.dp)
+            .height(if (date.isToday) 80.dp else 70.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor
+            )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // ✅ Day number
+                Text(
+                    text = date.dayOfMonth.toString(),
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+
+                // ✅ Day of week
+                Text(
+                    text = date.dayOfWeek,
+                    fontSize = 12.sp,
+                    color = textColor
+                )
+
+                // ✅ Month label (only for today)
+                if (date.isToday) {
+                    Text(
+                        text = date.month,
+                        fontSize = 10.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+
+        // ✅ Schedule indicator (dot badge)
+        if (hasSchedule) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(10.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (date.isToday) Color.White else Color(0xFFEC7FA9)
+                    )
+            )
+        }
+    }
+}
+
+// ========================================
+// REST OF THE CODE (UNCHANGED)
+// ========================================
+
 @Composable
 private fun WelcomeCard() {
     Card(
@@ -148,70 +336,14 @@ private fun WelcomeCard() {
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = "Hello, amazing woman!", // ✅ Halo, perempuan hebat!
+                text = "Hello, amazing woman!",
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Don't forget to add a new schedule!", // ✅ Jangan lupa menambahkan jadwal baru!
+                text = "Don't forget to add a new schedule!",
                 style = MaterialTheme.typography.bodyMedium
             )
-        }
-    }
-}
-
-@Composable
-private fun DateSelector() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        DateItem("16", "Sun", false)
-        DateItem("17", "Mon", true, "Dec")
-        DateItem("18", "Tue", false)
-        DateItem("19", "Wed", false)
-        DateItem("20", "Thu", false)
-        DateItem("21", "Fri", false)
-        DateItem("22", "Sat", false)
-    }
-}
-
-@Composable
-private fun DateItem(date: String, day: String, isSelected: Boolean, month: String? = null) {
-    Card(
-        modifier = Modifier
-            .width(60.dp)
-            .height(if (isSelected) 80.dp else 70.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) Color(0xFFEC7FA9) else Color(0xFFFFE4E9)
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = date,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color.Black
-            )
-            Text(
-                text = day,
-                fontSize = 12.sp,
-                color = if (isSelected) Color.White else Color.Black
-            )
-            if (month != null) {
-                Text(
-                    text = month,
-                    fontSize = 10.sp,
-                    color = Color.White
-                )
-            }
         }
     }
 }
@@ -219,11 +351,11 @@ private fun DateItem(date: String, day: String, isSelected: Boolean, month: Stri
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FormCard(
-    scheduleName: String,              // ✅ jadwal → scheduleName
+    scheduleName: String,
     onScheduleNameChange: (String) -> Unit,
-    scheduleDate: String,              // ✅ tanggal → scheduleDate
+    scheduleDate: String,
     onScheduleDateChange: (String) -> Unit,
-    doctorName: String,                // ✅ dokter → doctorName
+    doctorName: String,
     onDoctorNameChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
@@ -239,14 +371,14 @@ private fun FormCard(
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "Add Health Schedule Form", // ✅ Form Tambah Jadwal Kesehatan
+                text = "Add Health Schedule Form",
                 style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Schedule to add:", // ✅ Jadwal yang ingin ditambahkan:
+                text = "Schedule to add:",
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -255,7 +387,7 @@ private fun FormCard(
                 value = scheduleName,
                 onValueChange = onScheduleNameChange,
                 placeholder = {
-                    Text("e.g., Routine Checkup", color = Color.White.copy(alpha = 0.7f)) // ✅ Contoh: Pemeriksaan Rutin
+                    Text("e.g., Routine Checkup", color = Color.White.copy(alpha = 0.7f))
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -273,7 +405,7 @@ private fun FormCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Schedule date:", // ✅ Tanggal jadwal:
+                text = "Schedule date:",
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -287,7 +419,7 @@ private fun FormCard(
                     value = scheduleDate,
                     onValueChange = { },
                     placeholder = {
-                        Text("Select date", color = Color.White.copy(alpha = 0.7f)) // ✅ Pilih tanggal
+                        Text("Select date", color = Color.White.copy(alpha = 0.7f))
                     },
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = true,
@@ -308,7 +440,7 @@ private fun FormCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Doctor's name:", // ✅ Pilihan dokter:
+                text = "Doctor's name:",
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -317,7 +449,7 @@ private fun FormCard(
                 value = doctorName,
                 onValueChange = onDoctorNameChange,
                 placeholder = {
-                    Text("e.g., Dr. Sarah", color = Color.White.copy(alpha = 0.7f)) // ✅ Contoh: Dr. Sarah
+                    Text("e.g., Dr. Sarah", color = Color.White.copy(alpha = 0.7f))
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -345,7 +477,7 @@ private fun FormCard(
                 )
             ) {
                 Text(
-                    text = "+ Add New Schedule", // ✅ + Tambah Jadwal Baru
+                    text = "+ Add New Schedule",
                     style = MaterialTheme.typography.titleLarge
                 )
             }
@@ -364,8 +496,8 @@ private fun FormCard(
 }
 
 @Composable
-private fun ScheduleListCard(      // ✅ DaftarJadwalCard → ScheduleListCard
-    schedules: List<com.example.breastieproject.data.model.Reminder>, // ✅ daftarJadwal → schedules
+private fun ScheduleListCard(
+    schedules: List<com.example.breastieproject.data.model.Reminder>,
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -378,14 +510,14 @@ private fun ScheduleListCard(      // ✅ DaftarJadwalCard → ScheduleListCard
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "Health Schedule List", // ✅ Daftar Jadwal Kesehatan
+                text = "Health Schedule List",
                 style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            schedules.forEach { schedule -> // ✅ jadwal → schedule
-                ScheduleItem(           // ✅ JadwalItem → ScheduleItem
+            schedules.forEach { schedule ->
+                ScheduleItem(
                     schedule = schedule,
                     onDelete = { onDelete(schedule.id) }
                 )
@@ -393,7 +525,7 @@ private fun ScheduleListCard(      // ✅ DaftarJadwalCard → ScheduleListCard
             }
 
             Text(
-                text = "Total: ${schedules.size} schedules saved", // ✅ Total: X jadwal tersimpan
+                text = "Total: ${schedules.size} schedules saved",
                 style = MaterialTheme.typography.titleLarge
             )
         }
@@ -401,8 +533,8 @@ private fun ScheduleListCard(      // ✅ DaftarJadwalCard → ScheduleListCard
 }
 
 @Composable
-private fun ScheduleItem(           // ✅ JadwalItem → ScheduleItem
-    schedule: com.example.breastieproject.data.model.Reminder, // ✅ jadwal → schedule
+private fun ScheduleItem(
+    schedule: com.example.breastieproject.data.model.Reminder,
     onDelete: () -> Unit
 ) {
     Card(
