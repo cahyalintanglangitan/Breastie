@@ -23,17 +23,16 @@ import java.util.*
 
 @Composable
 fun ReminderScreen(
-    viewModel: ReminderViewModel = viewModel()  // ✅ ADD ViewModel
+    viewModel: ReminderViewModel = viewModel()
 ) {
-    // ✅ Observe ViewModel states
     val reminders by viewModel.reminders.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     // Local form states
-    var jadwal by remember { mutableStateOf("") }
-    var tanggal by remember { mutableStateOf("") }
-    var dokter by remember { mutableStateOf("") }
+    var scheduleName by remember { mutableStateOf("") }      // ✅ jadwal → scheduleName
+    var scheduleDate by remember { mutableStateOf("") }      // ✅ tanggal → scheduleDate
+    var doctorName by remember { mutableStateOf("") }        // ✅ dokter → doctorName
     var showMessage by remember { mutableStateOf(false) }
     var messageText by remember { mutableStateOf("") }
 
@@ -54,46 +53,44 @@ fun ReminderScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             FormCard(
-                jadwal = jadwal,
-                onJadwalChange = { jadwal = it },
-                tanggal = tanggal,
-                onTanggalChange = { tanggal = it },
-                dokter = dokter,
-                onDokterChange = { dokter = it },
+                scheduleName = scheduleName,                 // ✅ Updated
+                onScheduleNameChange = { scheduleName = it }, // ✅ Updated
+                scheduleDate = scheduleDate,                 // ✅ Updated
+                onScheduleDateChange = { scheduleDate = it }, // ✅ Updated
+                doctorName = doctorName,                     // ✅ Updated
+                onDoctorNameChange = { doctorName = it },    // ✅ Updated
                 onSubmit = {
-                    if (jadwal.isNotEmpty() && tanggal.isNotEmpty() && dokter.isNotEmpty()) {
-                        // ✅ Call ViewModel to add reminder
+                    if (scheduleName.isNotEmpty() && scheduleDate.isNotEmpty() && doctorName.isNotEmpty()) {
                         viewModel.addReminder(
-                            name = jadwal,
-                            date = tanggal,
-                            doctor = dokter,
+                            name = scheduleName,
+                            date = scheduleDate,
+                            doctor = doctorName,
                             onSuccess = {
-                                messageText = "Jadwal berhasil ditambahkan!"
+                                messageText = "Schedule added successfully!" // ✅ English
                                 showMessage = true
 
                                 // Reset form
-                                jadwal = ""
-                                tanggal = ""
-                                dokter = ""
+                                scheduleName = ""
+                                scheduleDate = ""
+                                doctorName = ""
                             }
                         )
                     } else {
-                        messageText = "Mohon lengkapi semua field!"
+                        messageText = "Please fill all fields!" // ✅ English
                         showMessage = true
                     }
                 }
             )
 
-            // ✅ Display reminders from ViewModel
             if (reminders.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                DaftarJadwalCard(
-                    daftarJadwal = reminders,  // ✅ From Firestore!
+                ScheduleListCard(                             // ✅ DaftarJadwalCard → ScheduleListCard
+                    schedules = reminders,                    // ✅ daftarJadwal → schedules
                     onDelete = { reminderId ->
                         viewModel.deleteReminder(
                             reminderId = reminderId,
                             onSuccess = {
-                                messageText = "Jadwal berhasil dihapus!"
+                                messageText = "Schedule deleted successfully!" // ✅ English
                                 showMessage = true
                             }
                         )
@@ -101,7 +98,6 @@ fun ReminderScreen(
                 )
             }
 
-            // ✅ Loading indicator
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier
@@ -112,7 +108,6 @@ fun ReminderScreen(
             }
         }
 
-        // ✅ Error/Success message
         if (showMessage || errorMessage != null) {
             Snackbar(
                 modifier = Modifier
@@ -126,7 +121,7 @@ fun ReminderScreen(
                         Text("OK", color = Color.White)
                     }
                 },
-                containerColor = if (messageText.contains("berhasil"))
+                containerColor = if (messageText.contains("successfully")) // ✅ berhasil → successfully
                     Color(0xFF4CAF50) else Color(0xFFFF5252)
             ) {
                 Text(errorMessage ?: messageText)
@@ -153,12 +148,12 @@ private fun WelcomeCard() {
             modifier = Modifier.padding(20.dp)
         ) {
             Text(
-                text = "Halo, perempuan hebat!",
+                text = "Hello, amazing woman!", // ✅ Halo, perempuan hebat!
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Jangan lupa menambahkan jadwal baru!",
+                text = "Don't forget to add a new schedule!", // ✅ Jangan lupa menambahkan jadwal baru!
                 style = MaterialTheme.typography.bodyMedium
             )
         }
@@ -224,12 +219,12 @@ private fun DateItem(date: String, day: String, isSelected: Boolean, month: Stri
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FormCard(
-    jadwal: String,
-    onJadwalChange: (String) -> Unit,
-    tanggal: String,
-    onTanggalChange: (String) -> Unit,
-    dokter: String,
-    onDokterChange: (String) -> Unit,
+    scheduleName: String,              // ✅ jadwal → scheduleName
+    onScheduleNameChange: (String) -> Unit,
+    scheduleDate: String,              // ✅ tanggal → scheduleDate
+    onScheduleDateChange: (String) -> Unit,
+    doctorName: String,                // ✅ dokter → doctorName
+    onDoctorNameChange: (String) -> Unit,
     onSubmit: () -> Unit
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
@@ -244,23 +239,23 @@ private fun FormCard(
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "Form Tambah Jadwal Kesehatan",
+                text = "Add Health Schedule Form", // ✅ Form Tambah Jadwal Kesehatan
                 style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Jadwal yang ingin ditambahkan :",
+                text = "Schedule to add:", // ✅ Jadwal yang ingin ditambahkan:
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = jadwal,
-                onValueChange = onJadwalChange,
+                value = scheduleName,
+                onValueChange = onScheduleNameChange,
                 placeholder = {
-                    Text("Contoh: Pemeriksaan Rutin", color = Color.White.copy(alpha = 0.7f))
+                    Text("e.g., Routine Checkup", color = Color.White.copy(alpha = 0.7f)) // ✅ Contoh: Pemeriksaan Rutin
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -278,7 +273,7 @@ private fun FormCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Tanggal jadwal :",
+                text = "Schedule date:", // ✅ Tanggal jadwal:
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -289,10 +284,10 @@ private fun FormCard(
                     .clickable { showDatePicker = true }
             ) {
                 OutlinedTextField(
-                    value = tanggal,
+                    value = scheduleDate,
                     onValueChange = { },
                     placeholder = {
-                        Text("Pilih tanggal", color = Color.White.copy(alpha = 0.7f))
+                        Text("Select date", color = Color.White.copy(alpha = 0.7f)) // ✅ Pilih tanggal
                     },
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = true,
@@ -313,16 +308,16 @@ private fun FormCard(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Pilihan dokter :",
+                text = "Doctor's name:", // ✅ Pilihan dokter:
                 style = MaterialTheme.typography.titleLarge
             )
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = dokter,
-                onValueChange = onDokterChange,
+                value = doctorName,
+                onValueChange = onDoctorNameChange,
                 placeholder = {
-                    Text("Contoh: Dr. Sarah", color = Color.White.copy(alpha = 0.7f))
+                    Text("e.g., Dr. Sarah", color = Color.White.copy(alpha = 0.7f)) // ✅ Contoh: Dr. Sarah
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -350,7 +345,7 @@ private fun FormCard(
                 )
             ) {
                 Text(
-                    text = "+ Tambah Jadwal Baru",
+                    text = "+ Add New Schedule", // ✅ + Tambah Jadwal Baru
                     style = MaterialTheme.typography.titleLarge
                 )
             }
@@ -360,7 +355,7 @@ private fun FormCard(
     if (showDatePicker) {
         DatePickerDialog(
             onDateSelected = { date ->
-                onTanggalChange(date)
+                onScheduleDateChange(date)
                 showDatePicker = false
             },
             onDismiss = { showDatePicker = false }
@@ -369,8 +364,8 @@ private fun FormCard(
 }
 
 @Composable
-private fun DaftarJadwalCard(
-    daftarJadwal: List<com.example.breastieproject.data.model.Reminder>,  // ✅ Use Reminder model
+private fun ScheduleListCard(      // ✅ DaftarJadwalCard → ScheduleListCard
+    schedules: List<com.example.breastieproject.data.model.Reminder>, // ✅ daftarJadwal → schedules
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -383,19 +378,22 @@ private fun DaftarJadwalCard(
             modifier = Modifier.padding(24.dp)
         ) {
             Text(
-                text = "Daftar Jadwal Kesehatan",
+                text = "Health Schedule List", // ✅ Daftar Jadwal Kesehatan
                 style = MaterialTheme.typography.titleLarge
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            daftarJadwal.forEach { jadwal ->
-                JadwalItem(jadwal = jadwal, onDelete = { onDelete(jadwal.id) })
+            schedules.forEach { schedule -> // ✅ jadwal → schedule
+                ScheduleItem(           // ✅ JadwalItem → ScheduleItem
+                    schedule = schedule,
+                    onDelete = { onDelete(schedule.id) }
+                )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
             Text(
-                text = "Total: ${daftarJadwal.size} jadwal tersimpan",
+                text = "Total: ${schedules.size} schedules saved", // ✅ Total: X jadwal tersimpan
                 style = MaterialTheme.typography.titleLarge
             )
         }
@@ -403,8 +401,8 @@ private fun DaftarJadwalCard(
 }
 
 @Composable
-private fun JadwalItem(
-    jadwal: com.example.breastieproject.data.model.Reminder,  // ✅ Use Reminder model
+private fun ScheduleItem(           // ✅ JadwalItem → ScheduleItem
+    schedule: com.example.breastieproject.data.model.Reminder, // ✅ jadwal → schedule
     onDelete: () -> Unit
 ) {
     Card(
@@ -422,22 +420,21 @@ private fun JadwalItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                // ✅ Show H-X days
                 Text(
-                    text = "${jadwal.daysUntil}: ${jadwal.name}",
+                    text = "${schedule.daysUntil}: ${schedule.name}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "📅 ${jadwal.date}",
+                    text = "📅 ${schedule.date}",
                     fontSize = 14.sp,
                     color = Color(0xFFEC7FA9)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "👨‍⚕️ ${jadwal.doctor}",
+                    text = "👨‍⚕️ ${schedule.doctor}",
                     fontSize = 14.sp,
                     color = Color.Gray
                 )
@@ -452,6 +449,7 @@ private fun JadwalItem(
         }
     }
 }
+
 @Composable
 private fun DatePickerDialog(
     onDateSelected: (String) -> Unit,
