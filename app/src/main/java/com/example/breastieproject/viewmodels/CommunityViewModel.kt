@@ -612,7 +612,6 @@ class CommunityViewModel : ViewModel() {
                     "authorUsername" to anonymousName,
                     "comment" to commentText,
                     "timestamp" to System.currentTimeMillis(),
-                    "createdAt" to "Just now"
                 )
 
                 firestore.collection("comments")

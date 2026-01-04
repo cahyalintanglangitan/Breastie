@@ -78,7 +78,7 @@ fun QuestionScreen(
         ),
         Question(
             question = "Can I create my own community?",
-            answer = "Yes! In the Community tab, tap the '+' button to create a new community. Choose a name, description, and set the community type (public or private).",
+            answer = "No. Communities in Breastie are created and managed exclusively by the Breastie admin team. Users can join and participate in available communities.",
             category = "Community Features"
         ),
         Question(

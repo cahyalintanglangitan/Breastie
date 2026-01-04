@@ -317,7 +317,7 @@ private fun CommentBubble(comment: com.example.breastieproject.data.model.Commen
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = comment.createdAt,
+                    text = comment.timeAgo,
                     fontSize = 10.sp,
                     color = Color(0xFF999999)
                 )

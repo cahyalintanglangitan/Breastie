@@ -276,7 +276,7 @@ fun AboutBreastieScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "© 2024 Breastie. All rights reserved.",
+                    text = "© 2026 Breastie. All rights reserved.",
                     fontSize = 12.sp,
                     color = Color(0xFF999999)
                 )
